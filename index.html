@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dartmouth Swimming Alumni Archive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Decorative pool lane lines -->
+    <div class="lane-lines" aria-hidden="true">
+        <div class="lane"></div>
+        <div class="lane"></div>
+        <div class="lane"></div>
+        <div class="lane"></div>
+        <div class="lane"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="d-pine.png" alt="Dartmouth D with Pine" class="dartmouth-logo">
+                <div class="title-group">
+                    <h1>Dartmouth Swimming</h1>
+                    <p class="subtitle">Alumni Archive</p>
+                </div>
+            </div>
+            <nav class="main-nav">
+                <button class="nav-btn active" data-view="timeline">Timeline</button>
+                <button class="nav-btn" data-view="contribute">Contribute</button>
+                <button class="nav-btn" data-view="invite">Invite Alumni</button>
+            </nav>
+            <div class="user-section">
+                <span class="user-name">Welcome, Big Green</span>
+                <button class="notification-btn" aria-label="Notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="notification-badge">3</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Timeline View -->
+        <section id="timeline-view" class="view active">
+            <div class="timeline-header">
+                <h2>Decades of Excellence</h2>
+                <p class="archive-intro">Dive into the rich history of Dartmouth Swimming. Each decade holds stories of triumph, camaraderie, and the enduring Big Green spirit.</p>
+            </div>
+
+            <!-- Decade Navigation -->
+            <nav class="decade-nav" aria-label="Decade navigation">
+                <div class="decade-track">
+                    <button class="decade-marker" data-decade="1950s">
+                        <span class="decade-year">1950s</span>
+                        <span class="decade-count">12 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="1960s">
+                        <span class="decade-year">1960s</span>
+                        <span class="decade-count">28 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="1970s">
+                        <span class="decade-year">1970s</span>
+                        <span class="decade-count">45 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="1980s">
+                        <span class="decade-year">1980s</span>
+                        <span class="decade-count">67 memories</span>
+                    </button>
+                    <button class="decade-marker active" data-decade="1990s">
+                        <span class="decade-year">1990s</span>
+                        <span class="decade-count">89 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="2000s">
+                        <span class="decade-year">2000s</span>
+                        <span class="decade-count">124 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="2010s">
+                        <span class="decade-year">2010s</span>
+                        <span class="decade-count">156 memories</span>
+                    </button>
+                    <button class="decade-marker" data-decade="2020s">
+                        <span class="decade-year">2020s</span>
+                        <span class="decade-count">43 memories</span>
+                    </button>
+                </div>
+                <div class="decade-line" aria-hidden="true"></div>
+            </nav>
+
+            <!-- Decade Content -->
+            <div class="decade-content">
+                <div class="decade-hero">
+                    <div class="decade-title-card">
+                        <span class="decade-era">The</span>
+                        <h3 class="decade-display">1990s</h3>
+                        <span class="decade-tagline">"The Golden Era"</span>
+                    </div>
+                    <div class="decade-stats">
+                        <div class="stat">
+                            <span class="stat-number">89</span>
+                            <span class="stat-label">Memories</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">34</span>
+                            <span class="stat-label">Contributors</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">7</span>
+                            <span class="stat-label">Championships</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Archive Grid -->
+                <div class="archive-grid">
+                    <!-- Memory Card 1 - Photo -->
+                    <article class="memory-card photo-card featured">
+                        <div class="card-image">
+                            <div class="placeholder-image pool-scene">
+                                <span class="image-icon">📸</span>
+                            </div>
+                            <div class="image-overlay">
+                                <span class="year-badge">1994</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <h4>Ivy League Championships Victory</h4>
+                            <p class="memory-excerpt">The moment we clinched the title. Coach Johnson's face said it all - years of 5am practices had finally paid off...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">MK</span>
+                                    Mike Kennedy '95
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">🏊 24</button>
+                                    <button class="reaction-btn">💚 18</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Memory Card 2 - Story -->
+                    <article class="memory-card story-card">
+                        <div class="story-header">
+                            <span class="story-icon">📖</span>
+                            <span class="year-badge">1997</span>
+                        </div>
+                        <div class="card-content">
+                            <h4>The Infamous Bus Ride to Princeton</h4>
+                            <p class="memory-excerpt">What was supposed to be a 4-hour trip turned into an 11-hour odyssey. The stories from that night could fill a book...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">SR</span>
+                                    Sarah Reynolds '98
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">😂 31</button>
+                                    <button class="reaction-btn">💚 12</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Memory Card 3 - Photo -->
+                    <article class="memory-card photo-card">
+                        <div class="card-image">
+                            <div class="placeholder-image team-photo">
+                                <span class="image-icon">👥</span>
+                            </div>
+                            <div class="image-overlay">
+                                <span class="year-badge">1991</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <h4>Team Photo - Karl Michael Pool</h4>
+                            <p class="memory-excerpt">Freshman year team photo. Half of us had no idea what we were getting into...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">JT</span>
+                                    Jim Thompson '95
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">🏊 15</button>
+                                    <button class="reaction-btn">💚 22</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Memory Card 4 - Story -->
+                    <article class="memory-card story-card tall">
+                        <div class="story-header">
+                            <span class="story-icon">📖</span>
+                            <span class="year-badge">1993</span>
+                        </div>
+                        <div class="card-content">
+                            <h4>Coach Thornton's Last Season</h4>
+                            <p class="memory-excerpt">After 25 years, Coach Thornton announced his retirement at the end-of-season banquet. There wasn't a dry eye in the room. He had built more than a swim program - he built a family.
+
+His final words to us: "Swimming fast is temporary. The bonds you've forged here are permanent. Take care of each other."
+
+To this day, the '93 squad still meets every five years...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">DL</span>
+                                    David Liu '93
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">😢 45</button>
+                                    <button class="reaction-btn">💚 67</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Memory Card 5 - Photo -->
+                    <article class="memory-card photo-card">
+                        <div class="card-image">
+                            <div class="placeholder-image medal-ceremony">
+                                <span class="image-icon">🏅</span>
+                            </div>
+                            <div class="image-overlay">
+                                <span class="year-badge">1996</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <h4>NCAA Qualifier - 200 Fly</h4>
+                            <p class="memory-excerpt">The look of disbelief when I saw my time. Sub-1:50 seemed impossible...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">AP</span>
+                                    Amy Park '97
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">🏊 28</button>
+                                    <button class="reaction-btn">🎉 19</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Memory Card 6 - Photo -->
+                    <article class="memory-card photo-card">
+                        <div class="card-image">
+                            <div class="placeholder-image dorm-life">
+                                <span class="image-icon">🏠</span>
+                            </div>
+                            <div class="image-overlay">
+                                <span class="year-badge">1999</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <h4>Swim House Traditions</h4>
+                            <p class="memory-excerpt">The legendary pasta dinners before every home meet. This kitchen saw some things...</p>
+                            <div class="card-meta">
+                                <span class="contributor">
+                                    <span class="avatar">CB</span>
+                                    Chris Bennett '00
+                                </span>
+                                <span class="reactions">
+                                    <button class="reaction-btn">🍝 34</button>
+                                    <button class="reaction-btn">💚 21</button>
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <button class="load-more-btn">
+                    <span>Dive Deeper</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M19 12l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Contribute View -->
+        <section id="contribute-view" class="view">
+            <div class="contribute-container">
+                <div class="contribute-header">
+                    <h2>Add to the Archive</h2>
+                    <p>Share your memories with future generations of Big Green swimmers</p>
+                </div>
+
+                <form class="contribute-form" id="contribute-form">
+                    <div class="form-section">
+                        <label class="form-label">What type of memory?</label>
+                        <div class="memory-type-selector">
+                            <button type="button" class="type-btn active" data-type="photo">
+                                <span class="type-icon">📸</span>
+                                <span class="type-name">Photo</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="story">
+                                <span class="type-icon">📖</span>
+                                <span class="type-name">Story</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="document">
+                                <span class="type-icon">📄</span>
+                                <span class="type-name">Document</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label" for="decade-select">Which decade?</label>
+                        <select id="decade-select" class="form-select">
+                            <option value="">Select a decade...</option>
+                            <option value="1950s">1950s</option>
+                            <option value="1960s">1960s</option>
+                            <option value="1970s">1970s</option>
+                            <option value="1980s">1980s</option>
+                            <option value="1990s">1990s</option>
+                            <option value="2000s">2000s</option>
+                            <option value="2010s">2010s</option>
+                            <option value="2020s">2020s</option>
+                        </select>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label" for="year-input">Specific year (optional)</label>
+                        <input type="number" id="year-input" class="form-input" placeholder="e.g., 1987" min="1900" max="2030">
+                    </div>
+
+                    <div class="form-section" id="upload-section">
+                        <label class="form-label">Upload your photo</label>
+                        <div class="upload-zone" id="upload-zone">
+                            <div class="upload-content">
+                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                <p>Drag photos here or <span class="upload-link">browse</span></p>
+                                <span class="upload-hint">JPG, PNG up to 10MB</span>
+                            </div>
+                            <input type="file" id="file-input" accept="image/*" multiple hidden>
+                        </div>
+                        <div class="uploaded-preview" id="uploaded-preview"></div>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label" for="title-input">Title</label>
+                        <input type="text" id="title-input" class="form-input" placeholder="Give your memory a title...">
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label" for="story-input">Your story</label>
+                        <textarea id="story-input" class="form-textarea" placeholder="Share the story behind this memory. What was happening? Who was there? Why does it matter?"></textarea>
+                        <span class="char-count">0 / 2000</span>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label" for="tags-input">Tag teammates (optional)</label>
+                        <input type="text" id="tags-input" class="form-input" placeholder="Start typing names...">
+                        <div class="tags-container" id="tags-container"></div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary">Save as Draft</button>
+                        <button type="submit" class="btn-primary">
+                            <span>Add to Archive</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Invite View -->
+        <section id="invite-view" class="view">
+            <div class="invite-container">
+                <div class="invite-header">
+                    <h2>Grow Our Community</h2>
+                    <p>Help us reconnect with fellow Big Green swimmers</p>
+                </div>
+
+                <div class="invite-content">
+                    <div class="invite-form-section">
+                        <h3>Invite by Email</h3>
+                        <form class="invite-form" id="invite-form">
+                            <div class="email-input-group">
+                                <input type="email" id="invite-email" class="form-input" placeholder="teammate@email.com">
+                                <button type="button" class="add-email-btn" id="add-email-btn">Add</button>
+                            </div>
+                            <div class="email-list" id="email-list">
+                                <!-- Emails will be added here -->
+                            </div>
+                            <div class="form-section">
+                                <label class="form-label" for="invite-message">Personal message (optional)</label>
+                                <textarea id="invite-message" class="form-textarea small" placeholder="Add a personal note to your invitation..."></textarea>
+                            </div>
+                            <button type="submit" class="btn-primary full-width" id="send-invites-btn" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                                <span>Send Invitations</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="invite-stats-section">
+                        <h3>Community Growth</h3>
+                        <div class="community-stats">
+                            <div class="community-stat">
+                                <span class="stat-number">247</span>
+                                <span class="stat-label">Active Members</span>
+                            </div>
+                            <div class="community-stat">
+                                <span class="stat-number">8</span>
+                                <span class="stat-label">Decades Represented</span>
+                            </div>
+                            <div class="community-stat">
+                                <span class="stat-number">564</span>
+                                <span class="stat-label">Memories Shared</span>
+                            </div>
+                        </div>
+
+                        <div class="recent-joins">
+                            <h4>Recently Joined</h4>
+                            <ul class="joins-list">
+                                <li class="join-item">
+                                    <span class="avatar">TM</span>
+                                    <div class="join-info">
+                                        <span class="join-name">Tom Martinez '08</span>
+                                        <span class="join-time">Joined 2 hours ago</span>
+                                    </div>
+                                </li>
+                                <li class="join-item">
+                                    <span class="avatar">EW</span>
+                                    <div class="join-info">
+                                        <span class="join-name">Emily Wong '15</span>
+                                        <span class="join-time">Joined yesterday</span>
+                                    </div>
+                                </li>
+                                <li class="join-item">
+                                    <span class="avatar">RJ</span>
+                                    <div class="join-info">
+                                        <span class="join-name">Robert Jensen '72</span>
+                                        <span class="join-time">Joined 3 days ago</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="pending-invites">
+                            <h4>Your Pending Invites</h4>
+                            <ul class="pending-list">
+                                <li class="pending-item">
+                                    <span class="pending-email">john.doe@email.com</span>
+                                    <span class="pending-status">Sent 5 days ago</span>
+                                </li>
+                                <li class="pending-item">
+                                    <span class="pending-email">jane.smith@email.com</span>
+                                    <span class="pending-status">Sent 1 week ago</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Notification Settings Modal -->
+    <div class="modal-overlay" id="notification-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Notification Preferences</h3>
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <p class="modal-intro">Stay connected with the archive. Choose what updates you'd like to receive.</p>
+
+                <div class="notification-options">
+                    <label class="notification-option">
+                        <input type="checkbox" checked>
+                        <span class="option-content">
+                            <span class="option-title">New memories from your era</span>
+                            <span class="option-desc">When someone adds content from your decade</span>
+                        </span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" checked>
+                        <span class="option-content">
+                            <span class="option-title">Tagged in a memory</span>
+                            <span class="option-desc">When someone mentions you in a story</span>
+                        </span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox">
+                        <span class="option-content">
+                            <span class="option-title">All new uploads</span>
+                            <span class="option-desc">Get notified for every new memory added</span>
+                        </span>
+                    </label>
+                    <label class="notification-option">
+                        <input type="checkbox" checked>
+                        <span class="option-content">
+                            <span class="option-title">Weekly digest</span>
+                            <span class="option-desc">Summary of new content every Sunday</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="email-frequency">
+                    <label class="form-label">Email frequency</label>
+                    <select class="form-select">
+                        <option value="instant">Instant</option>
+                        <option value="daily" selected>Daily digest</option>
+                        <option value="weekly">Weekly digest</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary modal-cancel">Cancel</button>
+                <button class="btn-primary modal-save">Save Preferences</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Detail Modal -->
+    <div class="modal-overlay" id="memory-modal">
+        <div class="modal memory-detail-modal">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="memory-detail-content">
+                <div class="memory-image-large">
+                    <div class="placeholder-image pool-scene large">
+                        <span class="image-icon">📸</span>
+                    </div>
+                </div>
+                <div class="memory-detail-info">
+                    <span class="year-badge large">1994</span>
+                    <h3>Ivy League Championships Victory</h3>
+                    <div class="contributor-detail">
+                        <span class="avatar large">MK</span>
+                        <div class="contributor-info">
+                            <span class="contributor-name">Mike Kennedy '95</span>
+                            <span class="contributor-role">Team Captain, 1994-95</span>
+                        </div>
+                    </div>
+                    <div class="memory-full-story">
+                        <p>The moment we clinched the title. Coach Johnson's face said it all - years of 5am practices had finally paid off.</p>
+                        <p>This photo was taken right after the final relay. We knew going in that we needed to win it to take the overall championship. The pressure was immense, but somehow that made us swim faster.</p>
+                        <p>I still remember the sound in that natatorium - the echoes, the cheering, the splash of the finish. It's frozen in my memory forever.</p>
+                    </div>
+                    <div class="memory-reactions-detail">
+                        <button class="reaction-btn active">🏊 24</button>
+                        <button class="reaction-btn">💚 18</button>
+                        <button class="reaction-btn">🎉 5</button>
+                        <button class="reaction-btn add-reaction">+</button>
+                    </div>
+                    <div class="memory-comments">
+                        <h4>Comments</h4>
+                        <div class="comment">
+                            <span class="avatar small">JT</span>
+                            <div class="comment-content">
+                                <span class="comment-author">Jim Thompson '95</span>
+                                <p>I was in that relay! Still the highlight of my swimming career. Thanks for posting this, Mike.</p>
+                            </div>
+                        </div>
+                        <div class="comment">
+                            <span class="avatar small">SR</span>
+                            <div class="comment-content">
+                                <span class="comment-author">Sarah Reynolds '98</span>
+                                <p>Legends! This is the team that made me want to swim for Dartmouth.</p>
+                            </div>
+                        </div>
+                        <form class="comment-form">
+                            <input type="text" placeholder="Add a comment..." class="comment-input">
+                            <button type="submit" class="comment-submit">Post</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container">
+        <!-- Toasts will be added here dynamically -->
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="d-pine.png" alt="Dartmouth D with Pine" class="dartmouth-logo small">
+            </div>
+            <p class="footer-tagline">Preserving Big Green Swimming History</p>
+            <p class="footer-copyright">© 2024 Dartmouth Swimming Alumni Association</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
