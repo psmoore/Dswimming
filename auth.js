@@ -74,6 +74,48 @@ const AuthModule = {
     },
 
     /**
+     * Sign in with Google
+     */
+    async signInWithGoogle() {
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await firebase.auth().signInWithPopup(provider);
+            const user = result.user;
+
+            // Check if this is a new user and create profile if needed
+            const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+            if (!userDoc.exists) {
+                // New user - create profile
+                await firebase.firestore().collection('users').doc(user.uid).set({
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    classYear: null, // Will need to be set later
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    notificationPreferences: {
+                        newMemoriesFromEra: true,
+                        taggedInMemory: true,
+                        allNewUploads: false,
+                        weeklyDigest: true,
+                        emailFrequency: 'daily'
+                    }
+                });
+                this.showToast('Welcome to the Archive!', 'Account created with Google.', '🎉');
+            } else {
+                this.showToast('Welcome Back!', `Signed in as ${user.displayName}`, '👋');
+            }
+
+            return user;
+        } catch (error) {
+            console.error('Google sign-in error:', error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                this.showToast('Sign In Failed', error.message, '⚠️');
+            }
+            throw error;
+        }
+    },
+
+    /**
      * Sign out current user
      */
     async logout() {

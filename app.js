@@ -550,7 +550,24 @@ function initAuthUI() {
     const forgotPasswordForm = document.getElementById('forgot-password-form');
     const forgotPasswordLink = document.getElementById('forgot-password-link');
     const backToLoginLink = document.getElementById('back-to-login-link');
+    const googleSignInBtn = document.getElementById('google-sign-in-btn');
     const userName = document.querySelector('.user-name');
+
+    // Google Sign In
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', async () => {
+            try {
+                if (typeof AuthModule !== 'undefined' && AuthModule.signInWithGoogle) {
+                    await AuthModule.signInWithGoogle();
+                    closeModal('auth-modal');
+                } else {
+                    showToast('Demo Mode', 'Firebase not configured. This is a demo.', 'ℹ️');
+                }
+            } catch (error) {
+                // Error is handled in AuthModule
+            }
+        });
+    }
 
     // Tab switching
     authTabs.forEach(tab => {
