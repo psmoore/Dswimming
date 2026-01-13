@@ -539,24 +539,243 @@ function simulateNewContent() {
 }
 
 // ================================
+// Authentication UI Functions
+// ================================
+function initAuthUI() {
+    const authModal = document.getElementById('auth-modal');
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authForms = document.querySelectorAll('.auth-form');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const backToLoginLink = document.getElementById('back-to-login-link');
+    const userName = document.querySelector('.user-name');
+
+    // Tab switching
+    authTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+
+            authTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            authForms.forEach(form => {
+                form.classList.remove('active');
+                if (form.id === `${targetTab}-form`) {
+                    form.classList.add('active');
+                }
+            });
+
+            // Update modal title
+            const title = document.getElementById('auth-modal-title');
+            if (title) {
+                title.textContent = targetTab === 'login' ? 'Sign In' : 'Create Account';
+            }
+        });
+    });
+
+    // Forgot password link
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            authForms.forEach(form => form.classList.remove('active'));
+            forgotPasswordForm.classList.add('active');
+            document.getElementById('auth-modal-title').textContent = 'Reset Password';
+        });
+    }
+
+    // Back to login link
+    if (backToLoginLink) {
+        backToLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            authForms.forEach(form => form.classList.remove('active'));
+            loginForm.classList.add('active');
+            authTabs.forEach(t => t.classList.remove('active'));
+            authTabs[0].classList.add('active');
+            document.getElementById('auth-modal-title').textContent = 'Sign In';
+        });
+    }
+
+    // Login form submission
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                if (typeof AuthModule !== 'undefined') {
+                    await AuthModule.login(email, password);
+                    closeModal('auth-modal');
+                    loginForm.reset();
+                } else {
+                    // Demo mode - no Firebase configured
+                    showToast('Demo Mode', 'Firebase not configured. This is a demo.', 'ℹ️');
+                }
+            } catch (error) {
+                // Error is handled in AuthModule
+            }
+        });
+    }
+
+    // Register form submission
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('register-name').value;
+            const classYear = document.getElementById('register-class-year').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                if (typeof AuthModule !== 'undefined') {
+                    await AuthModule.register(email, password, name, classYear);
+                    closeModal('auth-modal');
+                    registerForm.reset();
+                } else {
+                    // Demo mode - no Firebase configured
+                    showToast('Demo Mode', 'Firebase not configured. This is a demo.', 'ℹ️');
+                }
+            } catch (error) {
+                // Error is handled in AuthModule
+            }
+        });
+    }
+
+    // Forgot password form submission
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+
+            try {
+                if (typeof AuthModule !== 'undefined') {
+                    await AuthModule.resetPassword(email);
+                } else {
+                    showToast('Demo Mode', 'Firebase not configured. This is a demo.', 'ℹ️');
+                }
+            } catch (error) {
+                // Error is handled in AuthModule
+            }
+        });
+    }
+
+    // Click on username to sign in/out
+    if (userName) {
+        userName.addEventListener('click', () => {
+            if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
+                // User is signed in - show logout option
+                if (confirm('Sign out of the archive?')) {
+                    AuthModule.logout();
+                }
+            } else {
+                // User is not signed in - show auth modal
+                openModal('auth-modal');
+            }
+        });
+        userName.style.cursor = 'pointer';
+    }
+}
+
+// ================================
+// Firebase Integration Functions
+// ================================
+async function submitMemoryToFirebase(memoryData) {
+    if (typeof DatabaseModule === 'undefined' || typeof StorageModule === 'undefined') {
+        // Demo mode
+        return null;
+    }
+
+    try {
+        // First, create a placeholder memory to get an ID
+        const memoryId = await DatabaseModule.addMemory({
+            ...memoryData,
+            images: []
+        });
+
+        // Upload files if any
+        if (state.uploadedFiles.length > 0) {
+            const uploadResults = await StorageModule.uploadMultipleFiles(
+                state.uploadedFiles,
+                memoryId,
+                (progress, current, total) => {
+                    showToast('Uploading', `Uploading image ${current} of ${total}...`, '📤');
+                }
+            );
+
+            // Update memory with image URLs
+            const imageUrls = uploadResults
+                .filter(r => !r.error)
+                .map(r => r.url);
+
+            if (imageUrls.length > 0) {
+                await firebase.firestore().collection('memories').doc(memoryId).update({
+                    images: imageUrls
+                });
+            }
+        }
+
+        return memoryId;
+    } catch (error) {
+        console.error('Error submitting memory:', error);
+        throw error;
+    }
+}
+
+async function sendInvitesToFirebase(emails, message) {
+    if (typeof DatabaseModule === 'undefined') {
+        return false;
+    }
+
+    try {
+        for (const email of emails) {
+            await DatabaseModule.sendInvite(email, message);
+        }
+        return true;
+    } catch (error) {
+        console.error('Error sending invites:', error);
+        throw error;
+    }
+}
+
+// ================================
 // Initialize
 // ================================
 function init() {
     initEventListeners();
+    initAuthUI();
     updateCharCount();
     animateMemoryCards();
 
-    // Show welcome toast
-    setTimeout(() => {
-        showToast(
-            'Welcome Back!',
-            'There are 3 new memories since your last visit.',
-            '👋'
-        );
-    }, 1500);
+    // Check if Firebase is configured
+    const isFirebaseConfigured = typeof firebase !== 'undefined' &&
+        firebase.apps &&
+        firebase.apps.length > 0;
 
-    // Start simulation
-    simulateNewContent();
+    if (!isFirebaseConfigured) {
+        console.log('Firebase not configured - running in demo mode');
+        // Show welcome toast for demo
+        setTimeout(() => {
+            showToast(
+                'Welcome to the Archive!',
+                'Demo mode - configure Firebase to enable full functionality.',
+                '👋'
+            );
+        }, 1500);
+    } else {
+        // Show welcome toast
+        setTimeout(() => {
+            showToast(
+                'Welcome Back!',
+                'There are 3 new memories since your last visit.',
+                '👋'
+            );
+        }, 1500);
+
+        // Start simulation
+        simulateNewContent();
+    }
 }
 
 // Run on DOM ready

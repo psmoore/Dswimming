@@ -9,6 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 </head>
 <body>
     <!-- Decorative pool lane lines -->
@@ -592,6 +598,78 @@ To this day, the '93 squad still meets every five years...</p>
         <!-- Toasts will be added here dynamically -->
     </div>
 
+    <!-- Authentication Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal auth-modal">
+            <div class="modal-header">
+                <h3 id="auth-modal-title">Sign In</h3>
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Sign In</button>
+                    <button class="auth-tab" data-tab="register">Create Account</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form active">
+                    <div class="form-section">
+                        <label class="form-label" for="login-email">Email</label>
+                        <input type="email" id="login-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="login-password">Password</label>
+                        <input type="password" id="login-password" class="form-input" placeholder="Your password" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">
+                        <span>Sign In</span>
+                    </button>
+                    <p class="auth-link">
+                        <a href="#" id="forgot-password-link">Forgot your password?</a>
+                    </p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form">
+                    <div class="form-section">
+                        <label class="form-label" for="register-name">Full Name</label>
+                        <input type="text" id="register-name" class="form-input" placeholder="John Smith" required>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="register-class-year">Class Year</label>
+                        <input type="number" id="register-class-year" class="form-input" placeholder="e.g., 1995" min="1900" max="2030" required>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="register-email">Email</label>
+                        <input type="email" id="register-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
+                    </div>
+                    <div class="form-section">
+                        <label class="form-label" for="register-password">Password</label>
+                        <input type="password" id="register-password" class="form-input" placeholder="Create a password (min 6 characters)" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">
+                        <span>Create Account</span>
+                    </button>
+                </form>
+
+                <!-- Forgot Password Form -->
+                <form id="forgot-password-form" class="auth-form">
+                    <p class="form-intro">Enter your email and we'll send you a link to reset your password.</p>
+                    <div class="form-section">
+                        <label class="form-label" for="reset-email">Email</label>
+                        <input type="email" id="reset-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">
+                        <span>Send Reset Link</span>
+                    </button>
+                    <p class="auth-link">
+                        <a href="#" id="back-to-login-link">Back to Sign In</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <footer class="main-footer">
         <div class="footer-content">
             <div class="footer-logo">
@@ -602,6 +680,11 @@ To this day, the '93 squad still meets every five years...</p>
         </div>
     </footer>
 
+    <!-- Firebase and App Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="database.js"></script>
+    <script src="storage.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

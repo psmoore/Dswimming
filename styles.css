@@ -1721,6 +1721,88 @@ body::before {
 }
 
 /* ================================
+   Authentication Modal
+   ================================ */
+.auth-modal {
+    max-width: 420px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    border-bottom: 2px solid var(--parchment);
+    padding-bottom: var(--space-sm);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: transparent;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border-radius: var(--radius-sm);
+}
+
+.auth-tab:hover {
+    color: var(--text-dark);
+    background: var(--cream);
+}
+
+.auth-tab.active {
+    color: var(--dartmouth-green);
+    background: rgba(0, 105, 62, 0.1);
+}
+
+.auth-form {
+    display: none;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form .form-section {
+    margin-bottom: var(--space-lg);
+}
+
+.auth-link {
+    text-align: center;
+    margin-top: var(--space-lg);
+    font-size: 0.9rem;
+}
+
+.auth-link a {
+    color: var(--dartmouth-green);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}
+
+.form-intro {
+    color: var(--text-medium);
+    margin-bottom: var(--space-lg);
+    line-height: 1.5;
+}
+
+/* Auth state body classes */
+body.unauthenticated .requires-auth {
+    display: none;
+}
+
+body.authenticated .requires-no-auth {
+    display: none;
+}
+
+/* ================================
    Responsive Design
    ================================ */
 @media (max-width: 1200px) {
