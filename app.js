@@ -945,11 +945,42 @@ function renderSettings() {
         $('#site-footer').value = site.footer || '';
     }
 
+    // Rows are updated in place, one per decade, so live changes (a decade removed,
+    // a tagline edited elsewhere) show up without wiping anything an admin has typed
     const editor = $('#decade-editor');
-    if (editor.contains(document.activeElement)) return;
-    replace(editor, state.decades.map(decade => {
+    const ids = new Set(state.decades.map(d => d.id));
+    for (const row of [...editor.children]) {
+        if (!ids.has(row.dataset.id)) row.remove();
+    }
+    state.decades.forEach((decade, i) => {
+        let row = [...editor.children].find(r => r.dataset.id === decade.id);
+        if (!row) row = decadeRow(decade);
+
+        const values = { label: decade.label || decade.id, tagline: decade.tagline || '', startYear: decade.startYear };
+        for (const [name, value] of Object.entries(values)) {
+            const input = row.elements[name];
+            if (!input.dataset.dirty) input.value = value ?? '';
+        }
+
         const count = memoriesIn(decade.id).length;
-        return h('form', { class: 'decade-row', onsubmit: async (e) => {
+        replace($('.decade-row-count', row), count
+            ? h('span', { class: 'muted' }, plural(count, 'memory', 'memories'))
+            : h('button', { type: 'button', class: 'link-button', onclick: async () => {
+                try { await Data.deleteDecade(decade.id); }
+                catch (error) { toast(describeError(error), { tone: 'error' }); }
+            } }, 'Remove'));
+
+        // Only move a row when it's out of order, so a focused field keeps focus
+        if (editor.children[i] !== row) editor.insertBefore(row, editor.children[i] || null);
+    });
+}
+
+function decadeRow(decade) {
+    return h('form', {
+        class: 'decade-row',
+        'data-id': decade.id,
+        oninput: (e) => { e.target.dataset.dirty = '1'; },
+        onsubmit: async (e) => {
             e.preventDefault();
             const form = e.currentTarget;
             const startYear = Number(form.elements.startYear.value);
@@ -960,28 +991,24 @@ function renderSettings() {
                     tagline: form.elements.tagline.value.trim(),
                     startYear
                 }));
+                for (const input of form.elements) delete input.dataset.dirty;
                 toast(`Saved the ${form.elements.label.value.trim() || decade.id}.`);
             } catch (error) {
                 toast(describeError(error), { tone: 'error' });
             }
-        } },
-            h('label', {}, h('span', { class: 'field-label' }, 'Label'),
-                h('input', { name: 'label', value: decade.label || decade.id, maxlength: '20' })),
-            h('label', { class: 'grow' }, h('span', { class: 'field-label' }, 'Tagline'),
-                h('input', { name: 'tagline', value: decade.tagline || '', maxlength: '80', placeholder: 'Optional' })),
-            h('label', {}, h('span', { class: 'field-label' }, 'First year'),
-                h('input', { name: 'startYear', type: 'number', value: decade.startYear, step: '1' })),
-            h('div', { class: 'decade-row-actions' },
-                h('button', { type: 'submit', class: 'button-quiet' }, 'Save'),
-                count
-                    ? h('span', { class: 'muted' }, plural(count, 'memory', 'memories'))
-                    : h('button', { type: 'button', class: 'link-button', onclick: async () => {
-                        try { await Data.deleteDecade(decade.id); }
-                        catch (error) { toast(describeError(error), { tone: 'error' }); }
-                    } }, 'Remove')
-            )
-        );
-    }));
+        }
+    },
+        h('label', {}, h('span', { class: 'field-label' }, 'Label'),
+            h('input', { name: 'label', type: 'text', maxlength: '20' })),
+        h('label', { class: 'grow' }, h('span', { class: 'field-label' }, 'Tagline'),
+            h('input', { name: 'tagline', type: 'text', maxlength: '80', placeholder: 'Optional' })),
+        h('label', {}, h('span', { class: 'field-label' }, 'First year'),
+            h('input', { name: 'startYear', type: 'number', step: '1' })),
+        h('div', { class: 'decade-row-actions' },
+            h('button', { type: 'submit', class: 'button-quiet' }, 'Save'),
+            h('span', { class: 'decade-row-count' })
+        )
+    );
 }
 
 async function renderPending() {

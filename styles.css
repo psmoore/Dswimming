@@ -1221,7 +1221,7 @@ textarea:focus-visible {
 
 .decade-row {
     display: grid;
-    grid-template-columns: 120px minmax(0, 1fr) 110px auto;
+    grid-template-columns: 120px minmax(0, 1fr) 110px 190px;
     gap: 16px;
     align-items: end;
     padding: 10px 0 14px;
