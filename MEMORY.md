@@ -1,18 +1,17 @@
 # Project Memory: Dartmouth Swimming Alumni Archive
 
 ## Current Status & "The North Star"
-*Last Updated: 2026-09-27*
+*Last Updated: 2026-09-28*
 - **North Star:** A private, living archive where Dartmouth swim & dive alumni share photos, stories and documents, organized by decade.
 - **Live at:** https://www.dartmouthswimming.com (GitHub Pages, repo `psmoore/Dswimming`, branch `master`)
-- **Current State:** Full redesign and rebuild done locally (vintage paper / walnut / honor board look, all content live from Firestore, members-only access, security rules with 54 passing tests). **Not yet committed, pushed or deployed.**
-- **Next Immediate Step:** Launch checklist below.
+- **Current State:** Redesign is live. Project is on the Blaze plan. Firestore and Storage rules were published by pasting into the Firebase console (Storage cross-service permission attached); the owner's account is set as admin; starter decades added (1920s removed). ~190 alumni from the 2015 reunion captains' sheet are being added to the invite list (no emails sent) ahead of a conference call on 2026-09-29.
+- **Next Immediate Step:** Confirm the invite list shows ~190 entries; watch Settings › Membership requests after the call.
 
-### Launch checklist (order matters)
-1. Enable Firebase Storage (requires the Blaze pay-as-you-go plan for `*.firebasestorage.app` buckets). Without it, photo and document uploads fail; stories still work.
-2. Deploy rules: `npx firebase-tools login`, then `npx firebase-tools deploy --only firestore:rules,storage`. Until this is done, the production database is readable by anyone.
-3. In the Firebase console, on your own `users/{uid}` document: set `status: "member"` and `role: "admin"` (the first admin can only be set by hand).
-4. Check Authentication › Settings › Authorized domains includes `www.dartmouthswimming.com`, and that Email/Password and Google providers are enabled.
-5. Push to `master`, sign in, open Settings, choose "Add starter content", then write the decade taglines.
+### Setup notes
+- Rules are deployed by pasting `firestore.rules` / `storage.rules` into the Firebase console Rules editors (the Firebase CLI login wasn't completed). Re-paste after any rules change.
+- Still unverified: Authentication › Settings › Authorized domains includes `www.dartmouthswimming.com`, and Email/Password + Google providers are enabled.
+- 23 people in the sheet had no email; 17 are invited only by `@dartmouth.edu` forwarding addresses and may need admin approval instead.
+- Possible follow-up (declined for now): store name + class year on invites to pre-fill profiles.
 
 ---
 
@@ -77,9 +76,8 @@
 ---
 
 ## Active Todo / Working Memory
-- [ ] Work through the launch checklist above
+- [x] Launch: rules published, admin set, starter content, invites (2026-09-28)
 - [ ] Decide whether to send invite and new-memory emails automatically (needs Cloud Functions or the Trigger Email extension, both on the Blaze plan)
 - [ ] Optional: Firebase App Check to limit API abuse
 - [x] Redesign: vintage paper, walnut, honor board (2026-09-27)
 - [x] Replace all fake content with live Firestore data; members-only rules with 54 tests (2026-09-27)
-- [x] Add CLAUDE.md and MEMORY.md (2026-09-27)
