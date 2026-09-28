@@ -1,0 +1,190 @@
+rules_version = '2';
+
+// Dartmouth Swimming Alumni Archive — Firestore security rules
+// Deploy: npx firebase-tools deploy --only firestore:rules
+//
+// Who can do what
+//   Anyone:   read site/home and decades (the public front page)
+//   Pending:  signed in, sees only their own profile
+//   Member:   read everything else; add memories, comments, invites
+//   Admin:    a member with role 'admin' (set by hand in the Firebase console);
+//             edits site content and decades, approves members, removes anything
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function profile() {
+      return get(profilePath(request.auth.uid)).data;
+    }
+
+    function isMember() {
+      return signedIn()
+        && exists(profilePath(request.auth.uid))
+        && profile().get('status', '') == 'member';
+    }
+
+    function isAdmin() {
+      return isMember() && profile().get('role', '') == 'admin';
+    }
+
+    // The signed-in email is on the invites list and has been verified
+    function isInvited() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/invites/$(request.auth.token.email.lower()));
+    }
+
+    function isText(value, minSize, maxSize) {
+      return value is string && value.size() >= minSize && value.size() <= maxSize;
+    }
+
+    function isClassYear(value) {
+      return value == null || (value is int && value >= 1900 && value <= 2100);
+    }
+
+    // ---------- Public front page ----------
+
+    match /site/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /decades/{decadeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- Members ----------
+
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || isMember();
+
+      allow create: if request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'classYear', 'photoURL', 'status', 'joinedAt'])
+        && isText(request.resource.data.displayName, 1, 80)
+        && isClassYear(request.resource.data.classYear)
+        && request.resource.data.joinedAt == request.time
+        && (request.resource.data.status == 'pending'
+            || (request.resource.data.status == 'member' && isInvited()));
+
+      // Members edit their own name and class year, can drop legacy fields,
+      // and can move themselves to 'member' only once their email is invited.
+      // Nobody but an admin can touch 'role'.
+      allow update: if isAdmin() || (
+        request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName', 'classYear', 'photoURL', 'status', 'email', 'notificationPreferences'])
+        && isText(request.resource.data.displayName, 1, 80)
+        && isClassYear(request.resource.data.get('classYear', null))
+        && !('email' in request.resource.data)
+        && !('notificationPreferences' in request.resource.data)
+        && (request.resource.data.status == resource.data.get('status', null)
+            || (request.resource.data.status == 'pending' && !('status' in resource.data))
+            || (request.resource.data.status == 'member' && isInvited()))
+      );
+
+      allow delete: if isAdmin();
+
+      match /private/{docId} {
+        allow read: if request.auth.uid == uid || isAdmin();
+        allow create, update: if request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['email'])
+          && request.resource.data.email == request.auth.token.email.lower();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ---------- Memories ----------
+
+    function isMemory(data) {
+      return data.keys().hasOnly(['type', 'title', 'story', 'decade', 'year', 'people', 'files',
+                                  'authorId', 'authorName', 'authorClassYear', 'createdAt', 'updatedAt'])
+        && data.type in ['photo', 'story', 'document']
+        && isText(data.title, 1, 140)
+        && isText(data.story, 0, 5000)
+        && data.decade is string
+        && exists(/databases/$(database)/documents/decades/$(data.decade))
+        && isClassYear(data.year)
+        && data.people is list && data.people.size() <= 30
+        && data.files is list && data.files.size() <= 10;
+    }
+
+    function memoryAuthor(memoryId) {
+      return get(/databases/$(database)/documents/memories/$(memoryId)).data.authorId;
+    }
+
+    match /memories/{memoryId} {
+      allow read: if isMember();
+
+      allow create: if isMember()
+        && isMemory(request.resource.data)
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if isMember()
+        && (resource.data.authorId == request.auth.uid || isAdmin())
+        && isMemory(request.resource.data)
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isMember()
+        && (resource.data.authorId == request.auth.uid || isAdmin());
+
+      match /comments/{commentId} {
+        allow read: if isMember();
+        allow create: if isMember()
+          && request.resource.data.keys().hasOnly(['text', 'authorId', 'authorName', 'authorClassYear', 'createdAt'])
+          && isText(request.resource.data.text, 1, 1000)
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow delete: if isMember()
+          && (resource.data.authorId == request.auth.uid
+              || memoryAuthor(memoryId) == request.auth.uid
+              || isAdmin());
+      }
+
+      // One "I was there" mark per member, stored under their uid
+      match /witnesses/{uid} {
+        allow read: if isMember();
+        allow create: if isMember()
+          && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['displayName', 'classYear', 'createdAt'])
+          && request.resource.data.createdAt == request.time;
+        allow delete: if isMember()
+          && (uid == request.auth.uid
+              || memoryAuthor(memoryId) == request.auth.uid
+              || isAdmin());
+      }
+    }
+
+    // ---------- Invites (document id is the lowercased email) ----------
+
+    match /invites/{email} {
+      allow read: if isAdmin()
+        || (signedIn() && (resource.data.invitedBy == request.auth.uid
+                           || email == request.auth.token.email.lower()));
+
+      // Create only: an email someone already invited can't be overwritten
+      allow create: if isMember()
+        && email == email.lower()
+        && request.resource.data.keys().hasOnly(['email', 'message', 'invitedBy', 'inviterName', 'createdAt'])
+        && request.resource.data.email == email
+        && isText(request.resource.data.message, 0, 1000)
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow delete: if isAdmin()
+        || (isMember() && resource.data.invitedBy == request.auth.uid);
+    }
+
+    // Everything else, including the old unused 'notifications' collection, is closed
+  }
+}

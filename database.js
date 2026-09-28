@@ -1,438 +1,262 @@
 /**
  * Database Module for Dartmouth Swimming Alumni Archive
- * Handles all Firestore operations for memories, decades, and invites
+ * All Firestore reads are live listeners, so anything changed in the
+ * database (including by hand in the Firebase console) shows up on the
+ * page without a reload.
+ *
+ * Collections
+ *   site/home                    title, intro, welcome, footer (admin-edited)
+ *   decades/{id}                 label, tagline, startYear (admin-edited)
+ *   memories/{id}                a photo, story or document
+ *     comments/{id}              comments on a memory
+ *     witnesses/{uid}            members who marked "I was there"
+ *   users/{uid}                  public member profile, visible to members
+ *     private/contact            email, visible to the member and admins
+ *   invites/{email}              invited emails; invitees join automatically
  */
 
-const DatabaseModule = {
-    /**
-     * Add a new memory to the archive
-     */
-    async addMemory(memoryData) {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            throw new Error('Must be signed in to add memories');
-        }
+import { auth, db } from './firebase-config.js';
+import {
+    collection,
+    doc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    getDoc,
+    getDocs,
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
+    writeBatch,
+    serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-        try {
-            const memory = {
-                ...memoryData,
-                authorId: user.uid,
-                authorName: user.displayName || user.email,
-                authorEmail: user.email,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                reactions: {
-                    swim: 0,
-                    heart: 0,
-                    celebrate: 0
-                },
-                commentCount: 0
-            };
+function withIds(snapshot) {
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+}
 
-            const docRef = await firebase.firestore().collection('memories').add(memory);
+function watch(ref, onData, onError) {
+    return onSnapshot(ref, onData, (error) => {
+        console.error('Listener error:', error);
+        if (onError) onError(error);
+    });
+}
 
-            // Update decade stats
-            await this.incrementDecadeCount(memoryData.decade);
+// ================================
+// Site content & decades (public)
+// ================================
 
-            // Trigger notifications for subscribers
-            await this.notifySubscribers(memory);
+export function watchSite(onData, onError) {
+    return watch(doc(db, 'site', 'home'), snap => onData(snap.exists() ? snap.data() : null), onError);
+}
 
-            return docRef.id;
-        } catch (error) {
-            console.error('Error adding memory:', error);
-            throw error;
-        }
-    },
+export function watchDecades(onData, onError) {
+    return watch(
+        query(collection(db, 'decades'), orderBy('startYear')),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
 
-    /**
-     * Get memories for a specific decade
-     */
-    async getMemoriesByDecade(decade, limitCount = 20, lastDoc = null) {
-        try {
-            let query = firebase.firestore()
-                .collection('memories')
-                .where('decade', '==', decade)
-                .orderBy('createdAt', 'desc')
-                .limit(limitCount);
+export async function saveSite(fields) {
+    await setDoc(doc(db, 'site', 'home'), fields, { merge: true });
+}
 
-            if (lastDoc) {
-                query = query.startAfter(lastDoc);
-            }
+export async function saveDecade(id, fields) {
+    await setDoc(doc(db, 'decades', id), fields, { merge: true });
+}
 
-            const snapshot = await query.get();
-            const memories = [];
+export async function deleteDecade(id) {
+    await deleteDoc(doc(db, 'decades', id));
+}
 
-            snapshot.forEach(doc => {
-                memories.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
+/**
+ * First-run content for an empty archive. Taglines are left blank on
+ * purpose — they're team history, so an admin writes them.
+ */
+export async function createStarterContent() {
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'site', 'home'), {
+        title: 'Dartmouth Swimming & Diving',
+        intro: 'The photographs, stories and papers of Big Green swimmers and divers, kept by the alumni who were there.',
+        welcome: 'Pick a decade on the board to see what teammates have shared, or add something of your own.',
+        footer: 'Dartmouth Swimming & Diving alumni'
+    }, { merge: true });
 
-            return {
-                memories,
-                lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
-                hasMore: snapshot.docs.length === limitCount
-            };
-        } catch (error) {
-            console.error('Error fetching memories:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get a single memory by ID
-     */
-    async getMemory(memoryId) {
-        try {
-            const doc = await firebase.firestore().collection('memories').doc(memoryId).get();
-            if (doc.exists) {
-                return { id: doc.id, ...doc.data() };
-            }
-            return null;
-        } catch (error) {
-            console.error('Error fetching memory:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Add a reaction to a memory
-     */
-    async addReaction(memoryId, reactionType) {
-        const user = firebase.auth().currentUser;
-        if (!user) return;
-
-        const reactionRef = firebase.firestore()
-            .collection('memories')
-            .doc(memoryId)
-            .collection('reactions')
-            .doc(user.uid);
-
-        try {
-            const existingReaction = await reactionRef.get();
-
-            if (existingReaction.exists && existingReaction.data().type === reactionType) {
-                // Remove reaction
-                await reactionRef.delete();
-                await firebase.firestore().collection('memories').doc(memoryId).update({
-                    [`reactions.${reactionType}`]: firebase.firestore.FieldValue.increment(-1)
-                });
-                return false;
-            } else {
-                // Add/change reaction
-                if (existingReaction.exists) {
-                    const oldType = existingReaction.data().type;
-                    await firebase.firestore().collection('memories').doc(memoryId).update({
-                        [`reactions.${oldType}`]: firebase.firestore.FieldValue.increment(-1)
-                    });
-                }
-
-                await reactionRef.set({
-                    type: reactionType,
-                    userId: user.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                await firebase.firestore().collection('memories').doc(memoryId).update({
-                    [`reactions.${reactionType}`]: firebase.firestore.FieldValue.increment(1)
-                });
-                return true;
-            }
-        } catch (error) {
-            console.error('Error adding reaction:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Add a comment to a memory
-     */
-    async addComment(memoryId, commentText) {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            throw new Error('Must be signed in to comment');
-        }
-
-        try {
-            const comment = {
-                memoryId,
-                authorId: user.uid,
-                authorName: user.displayName || user.email,
-                text: commentText,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await firebase.firestore()
-                .collection('memories')
-                .doc(memoryId)
-                .collection('comments')
-                .add(comment);
-
-            // Update comment count
-            await firebase.firestore().collection('memories').doc(memoryId).update({
-                commentCount: firebase.firestore.FieldValue.increment(1)
-            });
-
-            return comment;
-        } catch (error) {
-            console.error('Error adding comment:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get comments for a memory
-     */
-    async getComments(memoryId) {
-        try {
-            const snapshot = await firebase.firestore()
-                .collection('memories')
-                .doc(memoryId)
-                .collection('comments')
-                .orderBy('createdAt', 'asc')
-                .get();
-
-            const comments = [];
-            snapshot.forEach(doc => {
-                comments.push({ id: doc.id, ...doc.data() });
-            });
-
-            return comments;
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get decade statistics
-     */
-    async getDecadeStats() {
-        try {
-            const snapshot = await firebase.firestore().collection('decades').get();
-            const stats = {};
-
-            snapshot.forEach(doc => {
-                stats[doc.id] = doc.data();
-            });
-
-            return stats;
-        } catch (error) {
-            console.error('Error fetching decade stats:', error);
-            // Return default stats if collection doesn't exist yet
-            return {
-                '1950s': { memoryCount: 0, contributorCount: 0, tagline: 'The Founding Years' },
-                '1960s': { memoryCount: 0, contributorCount: 0, tagline: 'Building Tradition' },
-                '1970s': { memoryCount: 0, contributorCount: 0, tagline: 'The Rise' },
-                '1980s': { memoryCount: 0, contributorCount: 0, tagline: 'Dynasty Beginnings' },
-                '1990s': { memoryCount: 0, contributorCount: 0, tagline: 'The Golden Era' },
-                '2000s': { memoryCount: 0, contributorCount: 0, tagline: 'New Millennium' },
-                '2010s': { memoryCount: 0, contributorCount: 0, tagline: 'Modern Excellence' },
-                '2020s': { memoryCount: 0, contributorCount: 0, tagline: 'The New Wave' }
-            };
-        }
-    },
-
-    /**
-     * Increment decade memory count
-     */
-    async incrementDecadeCount(decade) {
-        const decadeRef = firebase.firestore().collection('decades').doc(decade);
-
-        try {
-            await decadeRef.set({
-                memoryCount: firebase.firestore.FieldValue.increment(1),
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (error) {
-            console.error('Error updating decade count:', error);
-        }
-    },
-
-    /**
-     * Send invite to join the archive
-     */
-    async sendInvite(email, personalMessage = '') {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            throw new Error('Must be signed in to send invites');
-        }
-
-        try {
-            const invite = {
-                email: email.toLowerCase(),
-                invitedBy: user.uid,
-                inviterName: user.displayName || user.email,
-                personalMessage,
-                status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            // Check if already invited
-            const existing = await firebase.firestore()
-                .collection('invites')
-                .where('email', '==', email.toLowerCase())
-                .get();
-
-            if (!existing.empty) {
-                throw new Error('This email has already been invited');
-            }
-
-            await firebase.firestore().collection('invites').add(invite);
-
-            // In production, this would trigger a Cloud Function to send the email
-            console.log('Invite created for:', email);
-
-            return true;
-        } catch (error) {
-            console.error('Error sending invite:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get pending invites sent by current user
-     */
-    async getMyInvites() {
-        const user = firebase.auth().currentUser;
-        if (!user) return [];
-
-        try {
-            const snapshot = await firebase.firestore()
-                .collection('invites')
-                .where('invitedBy', '==', user.uid)
-                .orderBy('createdAt', 'desc')
-                .get();
-
-            const invites = [];
-            snapshot.forEach(doc => {
-                invites.push({ id: doc.id, ...doc.data() });
-            });
-
-            return invites;
-        } catch (error) {
-            console.error('Error fetching invites:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Get recently joined users
-     */
-    async getRecentJoins(limit = 5) {
-        try {
-            const snapshot = await firebase.firestore()
-                .collection('users')
-                .orderBy('createdAt', 'desc')
-                .limit(limit)
-                .get();
-
-            const users = [];
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                users.push({
-                    id: doc.id,
-                    displayName: data.displayName,
-                    classYear: data.classYear,
-                    createdAt: data.createdAt
-                });
-            });
-
-            return users;
-        } catch (error) {
-            console.error('Error fetching recent joins:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Get community statistics
-     */
-    async getCommunityStats() {
-        try {
-            // Get user count
-            const usersSnapshot = await firebase.firestore().collection('users').get();
-            const userCount = usersSnapshot.size;
-
-            // Get memory count
-            const memoriesSnapshot = await firebase.firestore().collection('memories').get();
-            const memoryCount = memoriesSnapshot.size;
-
-            // Get decades represented
-            const decadesSnapshot = await firebase.firestore().collection('decades').get();
-            const decadeCount = decadesSnapshot.size || 8;
-
-            return {
-                userCount,
-                memoryCount,
-                decadeCount
-            };
-        } catch (error) {
-            console.error('Error fetching community stats:', error);
-            return { userCount: 0, memoryCount: 0, decadeCount: 8 };
-        }
-    },
-
-    /**
-     * Notify subscribers about new content
-     * In production, this would be handled by Cloud Functions
-     */
-    async notifySubscribers(memory) {
-        // This is a placeholder - actual implementation would use Cloud Functions
-        // to send emails to users who have subscribed to notifications
-        console.log('Would notify subscribers about new memory:', memory.title);
-
-        // Store notification record
-        try {
-            await firebase.firestore().collection('notifications').add({
-                type: 'new_memory',
-                memoryId: memory.id,
-                decade: memory.decade,
-                title: memory.title,
-                authorName: memory.authorName,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                processed: false
-            });
-        } catch (error) {
-            console.error('Error creating notification record:', error);
-        }
-    },
-
-    /**
-     * Search memories by title or content
-     */
-    async searchMemories(searchTerm, decade = null) {
-        // Note: Full-text search in Firestore is limited
-        // For production, consider using Algolia or Elasticsearch
-        try {
-            let query = firebase.firestore().collection('memories');
-
-            if (decade) {
-                query = query.where('decade', '==', decade);
-            }
-
-            const snapshot = await query.orderBy('createdAt', 'desc').limit(100).get();
-            const memories = [];
-            const searchLower = searchTerm.toLowerCase();
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (
-                    data.title?.toLowerCase().includes(searchLower) ||
-                    data.story?.toLowerCase().includes(searchLower)
-                ) {
-                    memories.push({ id: doc.id, ...data });
-                }
-            });
-
-            return memories;
-        } catch (error) {
-            console.error('Error searching memories:', error);
-            return [];
-        }
+    for (let start = 1920; start <= 2020; start += 10) {
+        batch.set(doc(db, 'decades', `${start}s`), {
+            label: `${start}s`,
+            tagline: '',
+            startYear: start
+        }, { merge: true });
     }
-};
+    await batch.commit();
+}
 
-// Export module
-window.DatabaseModule = DatabaseModule;
+// ================================
+// Memories (members only)
+// ================================
+
+/**
+ * Every memory, live. Sorting and per-decade grouping happen in the page,
+ * which keeps the archive free of composite indexes. Fine for a few
+ * thousand memories; switch to per-decade queries beyond that.
+ */
+export function watchMemories(onData, onError) {
+    return watch(collection(db, 'memories'), snap => onData(withIds(snap)), onError);
+}
+
+export function newMemoryId() {
+    return doc(collection(db, 'memories')).id;
+}
+
+export async function createMemory(memoryId, fields, author) {
+    await setDoc(doc(db, 'memories', memoryId), {
+        type: fields.type,
+        title: fields.title,
+        story: fields.story,
+        decade: fields.decade,
+        year: fields.year,
+        people: fields.people,
+        files: fields.files,
+        authorId: auth.currentUser.uid,
+        authorName: author.displayName,
+        authorClassYear: author.classYear || null,
+        createdAt: serverTimestamp()
+    });
+}
+
+export async function updateMemory(memoryId, fields) {
+    await updateDoc(doc(db, 'memories', memoryId), { ...fields, updatedAt: serverTimestamp() });
+}
+
+/**
+ * Delete a memory with its comments and "I was there" marks.
+ * Storage files are removed separately by the caller.
+ */
+export async function deleteMemory(memoryId) {
+    const batch = writeBatch(db);
+    const [comments, witnesses] = await Promise.all([
+        getDocs(collection(db, 'memories', memoryId, 'comments')),
+        getDocs(collection(db, 'memories', memoryId, 'witnesses'))
+    ]);
+    comments.forEach(d => batch.delete(d.ref));
+    witnesses.forEach(d => batch.delete(d.ref));
+    batch.delete(doc(db, 'memories', memoryId));
+    await batch.commit();
+}
+
+// ================================
+// Comments & "I was there"
+// ================================
+
+export function watchComments(memoryId, onData, onError) {
+    return watch(
+        query(collection(db, 'memories', memoryId, 'comments'), orderBy('createdAt')),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
+
+export async function addComment(memoryId, text, author) {
+    await addDoc(collection(db, 'memories', memoryId, 'comments'), {
+        text,
+        authorId: auth.currentUser.uid,
+        authorName: author.displayName,
+        authorClassYear: author.classYear || null,
+        createdAt: serverTimestamp()
+    });
+}
+
+export async function deleteComment(memoryId, commentId) {
+    await deleteDoc(doc(db, 'memories', memoryId, 'comments', commentId));
+}
+
+export function watchWitnesses(memoryId, onData, onError) {
+    return watch(
+        collection(db, 'memories', memoryId, 'witnesses'),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
+
+export async function setWitness(memoryId, isThere, author) {
+    const ref = doc(db, 'memories', memoryId, 'witnesses', auth.currentUser.uid);
+    if (isThere) {
+        await setDoc(ref, {
+            displayName: author.displayName,
+            classYear: author.classYear || null,
+            createdAt: serverTimestamp()
+        });
+    } else {
+        await deleteDoc(ref);
+    }
+}
+
+// ================================
+// Members
+// ================================
+
+export function watchMembers(onData, onError) {
+    return watch(
+        query(collection(db, 'users'), where('status', '==', 'member')),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
+
+export function watchPendingMembers(onData, onError) {
+    return watch(
+        query(collection(db, 'users'), where('status', '==', 'pending')),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
+
+export async function getMemberEmail(uid) {
+    const snap = await getDoc(doc(db, 'users', uid, 'private', 'contact'));
+    return snap.exists() ? snap.data().email : null;
+}
+
+export async function setMemberStatus(uid, status) {
+    await updateDoc(doc(db, 'users', uid), { status });
+}
+
+// ================================
+// Invites
+// ================================
+
+export function watchMyInvites(onData, onError) {
+    return watch(
+        query(collection(db, 'invites'), where('invitedBy', '==', auth.currentUser.uid)),
+        snap => onData(withIds(snap)),
+        onError
+    );
+}
+
+/**
+ * Add an email to the invite list. Returns false if someone already invited it
+ * (the rules refuse to overwrite an existing invite).
+ */
+export async function addInvite(email, message, inviter) {
+    const id = email.trim().toLowerCase();
+    try {
+        await setDoc(doc(db, 'invites', id), {
+            email: id,
+            message,
+            invitedBy: auth.currentUser.uid,
+            inviterName: inviter.displayName,
+            createdAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        if (error.code === 'permission-denied') return false;
+        throw error;
+    }
+}
+
+export async function deleteInvite(email) {
+    await deleteDoc(doc(db, 'invites', email));
+}

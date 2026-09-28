@@ -3,703 +3,320 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#3a2415">
     <title>Dartmouth Swimming Alumni Archive</title>
+    <meta name="description" content="Photographs, stories and papers from Dartmouth swimmers and divers, kept by the alumni who were there.">
     <link rel="icon" type="image/png" href="D-Pine_RGB.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <link rel="modulepreload" href="firebase-config.js">
 </head>
-<body>
-    <!-- Decorative pool lane lines -->
-    <div class="lane-lines" aria-hidden="true">
-        <div class="lane"></div>
-        <div class="lane"></div>
-        <div class="lane"></div>
-        <div class="lane"></div>
-        <div class="lane"></div>
-    </div>
+<body class="is-loading">
+    <a class="skip-link" href="#main">Skip to the archive</a>
 
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo-section">
-                <img src="d-pine.png" alt="Dartmouth D with Pine" class="dartmouth-logo">
-                <div class="title-group">
-                    <h1>Dartmouth Swimming</h1>
-                    <p class="subtitle">Alumni Archive</p>
-                </div>
-            </div>
-            <nav class="main-nav">
-                <button class="nav-btn active" data-view="timeline">Timeline</button>
-                <button class="nav-btn" data-view="contribute">Contribute</button>
-                <button class="nav-btn" data-view="invite">Invite Alumni</button>
+    <!-- Wooden rail across the top -->
+    <header class="rail">
+        <div class="rail-inner">
+            <a class="brand" href="#/">
+                <img src="D-Pine_Rev.png" alt="" class="brand-mark" width="44" height="44">
+                <span class="brand-name" data-site="title"></span>
+            </a>
+
+            <nav class="rail-nav" aria-label="Archive sections" hidden>
+                <a href="#/" data-route="archive">Archive</a>
+                <a href="#/add" data-route="add">Add a memory</a>
+                <a href="#/invite" data-route="invite">Invite teammates</a>
+                <a href="#/settings" data-route="settings" data-admin-only hidden>Settings</a>
             </nav>
-            <div class="user-section">
-                <span class="user-name">Welcome, Big Green</span>
-                <button class="notification-btn" aria-label="Notifications">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                    <span class="notification-badge">3</span>
-                </button>
+
+            <div class="account">
+                <button type="button" class="rail-button" id="sign-in-button" hidden>Sign in</button>
+                <div class="account-menu" id="account-menu" hidden>
+                    <button type="button" class="rail-button account-name" id="account-button" aria-haspopup="true" aria-expanded="false"></button>
+                    <div class="account-dropdown" id="account-dropdown" hidden>
+                        <button type="button" id="edit-profile-button">Your details</button>
+                        <button type="button" id="sign-out-button">Sign out</button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Timeline View -->
-        <section id="timeline-view" class="view active">
-            <div class="timeline-header">
-                <h2>Decades of Excellence</h2>
-                <p class="archive-intro">Dive into the rich history of Dartmouth Swimming. Each decade holds stories of triumph, camaraderie, and the enduring Big Green spirit.</p>
-            </div>
-
-            <!-- Decade Navigation -->
-            <nav class="decade-nav" aria-label="Decade navigation">
-                <div class="decade-track">
-                    <button class="decade-marker" data-decade="1950s">
-                        <span class="decade-year">1950s</span>
-                        <span class="decade-count">12 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="1960s">
-                        <span class="decade-year">1960s</span>
-                        <span class="decade-count">28 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="1970s">
-                        <span class="decade-year">1970s</span>
-                        <span class="decade-count">45 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="1980s">
-                        <span class="decade-year">1980s</span>
-                        <span class="decade-count">67 memories</span>
-                    </button>
-                    <button class="decade-marker active" data-decade="1990s">
-                        <span class="decade-year">1990s</span>
-                        <span class="decade-count">89 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="2000s">
-                        <span class="decade-year">2000s</span>
-                        <span class="decade-count">124 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="2010s">
-                        <span class="decade-year">2010s</span>
-                        <span class="decade-count">156 memories</span>
-                    </button>
-                    <button class="decade-marker" data-decade="2020s">
-                        <span class="decade-year">2020s</span>
-                        <span class="decade-count">43 memories</span>
-                    </button>
-                </div>
-                <div class="decade-line" aria-hidden="true"></div>
-            </nav>
-
-            <!-- Decade Content -->
-            <div class="decade-content">
-                <div class="decade-hero">
-                    <div class="decade-title-card">
-                        <span class="decade-era">The</span>
-                        <h3 class="decade-display">1990s</h3>
-                        <span class="decade-tagline">"The Golden Era"</span>
-                    </div>
-                    <div class="decade-stats">
-                        <div class="stat">
-                            <span class="stat-number">89</span>
-                            <span class="stat-label">Memories</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number">34</span>
-                            <span class="stat-label">Contributors</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number">7</span>
-                            <span class="stat-label">Championships</span>
+    <main id="main" tabindex="-1">
+        <!-- Archive: honor board + decade page -->
+        <section class="view" id="view-archive" data-view="archive">
+            <div class="archive-layout">
+                <aside class="board-column">
+                    <div class="board" id="board">
+                        <div class="board-panel">
+                            <h1 class="board-title" data-site="title"></h1>
+                            <ol class="board-rows" id="board-rows"></ol>
                         </div>
                     </div>
-                </div>
+                </aside>
 
-                <!-- Archive Grid -->
-                <div class="archive-grid">
-                    <!-- Memory Card 1 - Photo -->
-                    <article class="memory-card photo-card featured">
-                        <div class="card-image">
-                            <div class="placeholder-image pool-scene">
-                                <span class="image-icon">📸</span>
-                            </div>
-                            <div class="image-overlay">
-                                <span class="year-badge">1994</span>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <h4>Ivy League Championships Victory</h4>
-                            <p class="memory-excerpt">The moment we clinched the title. Coach Johnson's face said it all - years of 5am practices had finally paid off...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">MK</span>
-                                    Mike Kennedy '95
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">🏊 24</button>
-                                    <button class="reaction-btn">💚 18</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Memory Card 2 - Story -->
-                    <article class="memory-card story-card">
-                        <div class="story-header">
-                            <span class="story-icon">📖</span>
-                            <span class="year-badge">1997</span>
-                        </div>
-                        <div class="card-content">
-                            <h4>The Infamous Bus Ride to Princeton</h4>
-                            <p class="memory-excerpt">What was supposed to be a 4-hour trip turned into an 11-hour odyssey. The stories from that night could fill a book...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">SR</span>
-                                    Sarah Reynolds '98
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">😂 31</button>
-                                    <button class="reaction-btn">💚 12</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Memory Card 3 - Photo -->
-                    <article class="memory-card photo-card">
-                        <div class="card-image">
-                            <div class="placeholder-image team-photo">
-                                <span class="image-icon">👥</span>
-                            </div>
-                            <div class="image-overlay">
-                                <span class="year-badge">1991</span>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <h4>Team Photo - Karl Michael Pool</h4>
-                            <p class="memory-excerpt">Freshman year team photo. Half of us had no idea what we were getting into...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">JT</span>
-                                    Jim Thompson '95
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">🏊 15</button>
-                                    <button class="reaction-btn">💚 22</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Memory Card 4 - Story -->
-                    <article class="memory-card story-card tall">
-                        <div class="story-header">
-                            <span class="story-icon">📖</span>
-                            <span class="year-badge">1993</span>
-                        </div>
-                        <div class="card-content">
-                            <h4>Coach Thornton's Last Season</h4>
-                            <p class="memory-excerpt">After 25 years, Coach Thornton announced his retirement at the end-of-season banquet. There wasn't a dry eye in the room. He had built more than a swim program - he built a family.
-
-His final words to us: "Swimming fast is temporary. The bonds you've forged here are permanent. Take care of each other."
-
-To this day, the '93 squad still meets every five years...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">DL</span>
-                                    David Liu '93
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">😢 45</button>
-                                    <button class="reaction-btn">💚 67</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Memory Card 5 - Photo -->
-                    <article class="memory-card photo-card">
-                        <div class="card-image">
-                            <div class="placeholder-image medal-ceremony">
-                                <span class="image-icon">🏅</span>
-                            </div>
-                            <div class="image-overlay">
-                                <span class="year-badge">1996</span>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <h4>NCAA Qualifier - 200 Fly</h4>
-                            <p class="memory-excerpt">The look of disbelief when I saw my time. Sub-1:50 seemed impossible...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">AP</span>
-                                    Amy Park '97
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">🏊 28</button>
-                                    <button class="reaction-btn">🎉 19</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-
-                    <!-- Memory Card 6 - Photo -->
-                    <article class="memory-card photo-card">
-                        <div class="card-image">
-                            <div class="placeholder-image dorm-life">
-                                <span class="image-icon">🏠</span>
-                            </div>
-                            <div class="image-overlay">
-                                <span class="year-badge">1999</span>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <h4>Swim House Traditions</h4>
-                            <p class="memory-excerpt">The legendary pasta dinners before every home meet. This kitchen saw some things...</p>
-                            <div class="card-meta">
-                                <span class="contributor">
-                                    <span class="avatar">CB</span>
-                                    Chris Bennett '00
-                                </span>
-                                <span class="reactions">
-                                    <button class="reaction-btn">🍝 34</button>
-                                    <button class="reaction-btn">💚 21</button>
-                                </span>
-                            </div>
-                        </div>
-                    </article>
-                </div>
-
-                <button class="load-more-btn">
-                    <span>Dive Deeper</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 5v14M19 12l-7 7-7-7"/>
-                    </svg>
-                </button>
+                <div class="page" id="decade-page" aria-live="polite"></div>
             </div>
         </section>
 
-        <!-- Contribute View -->
-        <section id="contribute-view" class="view">
-            <div class="contribute-container">
-                <div class="contribute-header">
-                    <h2>Add to the Archive</h2>
-                    <p>Share your memories with future generations of Big Green swimmers</p>
-                </div>
+        <!-- Add or edit a memory -->
+        <section class="view" id="view-add" data-view="add" hidden>
+            <div class="sheet narrow">
+                <h1 class="sheet-title" id="add-title">Add a memory</h1>
+                <p class="sheet-lede" id="add-lede">A photo, a story, or a scanned meet program, letter or clipping. Everything you add is visible to all members.</p>
 
-                <form class="contribute-form" id="contribute-form">
-                    <div class="form-section">
-                        <label class="form-label">What type of memory?</label>
-                        <div class="memory-type-selector">
-                            <button type="button" class="type-btn active" data-type="photo">
-                                <span class="type-icon">📸</span>
-                                <span class="type-name">Photo</span>
-                            </button>
-                            <button type="button" class="type-btn" data-type="story">
-                                <span class="type-icon">📖</span>
-                                <span class="type-name">Story</span>
-                            </button>
-                            <button type="button" class="type-btn" data-type="document">
-                                <span class="type-icon">📄</span>
-                                <span class="type-name">Document</span>
-                            </button>
+                <form id="memory-form" class="entry-form" novalidate>
+                    <fieldset class="field type-field">
+                        <legend>What are you adding?</legend>
+                        <div class="type-options">
+                            <label><input type="radio" name="type" value="photo" checked> <span>Photos</span></label>
+                            <label><input type="radio" name="type" value="story"> <span>A story</span></label>
+                            <label><input type="radio" name="type" value="document"> <span>A document</span></label>
+                        </div>
+                    </fieldset>
+
+                    <div class="field" id="files-field">
+                        <span class="field-label" id="files-label">Photos</span>
+                        <label class="drop-zone" id="drop-zone">
+                            <input type="file" id="file-input" multiple accept="image/jpeg,image/png,image/gif,image/webp">
+                            <span class="drop-text">Drop files here or <u>choose from your computer</u></span>
+                            <span class="field-hint" id="files-hint">JPG, PNG, GIF or WebP. Large photos are resized automatically.</span>
+                        </label>
+                        <ul class="file-list" id="file-list"></ul>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label" for="memory-title">Title</label>
+                        <input type="text" id="memory-title" maxlength="140" required placeholder="Ivy Championships, the 400 free relay">
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label class="field-label" for="memory-year">Year <span class="optional">if you know it</span></label>
+                            <input type="number" id="memory-year" inputmode="numeric" min="1900" max="2100" placeholder="1987">
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="memory-decade">Decade</label>
+                            <select id="memory-decade" required></select>
                         </div>
                     </div>
 
-                    <div class="form-section">
-                        <label class="form-label" for="decade-select">Which decade?</label>
-                        <select id="decade-select" class="form-select">
-                            <option value="">Select a decade...</option>
-                            <option value="1950s">1950s</option>
-                            <option value="1960s">1960s</option>
-                            <option value="1970s">1970s</option>
-                            <option value="1980s">1980s</option>
-                            <option value="1990s">1990s</option>
-                            <option value="2000s">2000s</option>
-                            <option value="2010s">2010s</option>
-                            <option value="2020s">2020s</option>
-                        </select>
+                    <div class="field">
+                        <label class="field-label" for="memory-story" id="story-label">The story behind it</label>
+                        <textarea id="memory-story" rows="7" maxlength="5000" placeholder="What was happening? Who was there? Why does it stay with you?"></textarea>
+                        <span class="field-hint"><span id="story-count">0</span> of 5,000 characters</span>
                     </div>
 
-                    <div class="form-section">
-                        <label class="form-label" for="year-input">Specific year (optional)</label>
-                        <input type="number" id="year-input" class="form-input" placeholder="e.g., 1987" min="1900" max="2030">
+                    <div class="field">
+                        <label class="field-label" for="memory-people">Who's in it <span class="optional">separate names with commas</span></label>
+                        <input type="text" id="memory-people" placeholder="Coach Karl Michael, Sarah Reynolds '98">
                     </div>
 
-                    <div class="form-section" id="upload-section">
-                        <label class="form-label">Upload your photo</label>
-                        <div class="upload-zone" id="upload-zone">
-                            <div class="upload-content">
-                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="17 8 12 3 7 8"/>
-                                    <line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                                <p>Drag photos here or <span class="upload-link">browse</span></p>
-                                <span class="upload-hint">JPG, PNG up to 10MB</span>
-                            </div>
-                            <input type="file" id="file-input" accept="image/*" multiple hidden>
-                        </div>
-                        <div class="uploaded-preview" id="uploaded-preview"></div>
-                    </div>
-
-                    <div class="form-section">
-                        <label class="form-label" for="title-input">Title</label>
-                        <input type="text" id="title-input" class="form-input" placeholder="Give your memory a title...">
-                    </div>
-
-                    <div class="form-section">
-                        <label class="form-label" for="story-input">Your story</label>
-                        <textarea id="story-input" class="form-textarea" placeholder="Share the story behind this memory. What was happening? Who was there? Why does it matter?"></textarea>
-                        <span class="char-count">0 / 2000</span>
-                    </div>
-
-                    <div class="form-section">
-                        <label class="form-label" for="tags-input">Tag teammates (optional)</label>
-                        <input type="text" id="tags-input" class="form-input" placeholder="Start typing names...">
-                        <div class="tags-container" id="tags-container"></div>
-                    </div>
+                    <p class="form-error" id="memory-error" role="alert" hidden></p>
 
                     <div class="form-actions">
-                        <button type="button" class="btn-secondary">Save as Draft</button>
-                        <button type="submit" class="btn-primary">
-                            <span>Add to Archive</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M5 12h14M12 5l7 7-7 7"/>
-                            </svg>
-                        </button>
+                        <a href="#/" class="button-quiet" id="memory-cancel">Cancel</a>
+                        <button type="submit" class="button" id="memory-submit">Add to the archive</button>
                     </div>
+                    <div class="progress" id="memory-progress" hidden><span></span></div>
                 </form>
             </div>
         </section>
 
-        <!-- Invite View -->
-        <section id="invite-view" class="view">
-            <div class="invite-container">
-                <div class="invite-header">
-                    <h2>Grow Our Community</h2>
-                    <p>Help us reconnect with fellow Big Green swimmers</p>
+        <!-- Invite teammates -->
+        <section class="view" id="view-invite" data-view="invite" hidden>
+            <div class="sheet invite-sheet">
+                <div class="invite-main">
+                    <h1 class="sheet-title">Invite teammates</h1>
+                    <p class="sheet-lede">Anyone on the invite list joins straight away when they sign in with that email address. Adding them here doesn't email them; you'll send the invitation from your own email next.</p>
+
+                    <form id="invite-form" class="entry-form" novalidate>
+                        <div class="field">
+                            <label class="field-label" for="invite-emails">Email addresses</label>
+                            <textarea id="invite-emails" rows="3" placeholder="One per line, or separated by commas"></textarea>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="invite-message">A note from you <span class="optional">optional, included in the email</span></label>
+                            <textarea id="invite-message" rows="3" maxlength="1000"></textarea>
+                        </div>
+                        <p class="form-error" id="invite-error" role="alert" hidden></p>
+                        <div class="form-actions">
+                            <button type="submit" class="button">Add to invite list</button>
+                        </div>
+                    </form>
+
+                    <div class="invite-ready" id="invite-ready" hidden>
+                        <p id="invite-ready-text"></p>
+                        <a class="button" id="invite-mailto" href="#">Write the invitation email</a>
+                    </div>
+
+                    <h2 class="section-title">People you've invited</h2>
+                    <ul class="plain-list" id="my-invites"></ul>
                 </div>
 
-                <div class="invite-content">
-                    <div class="invite-form-section">
-                        <h3>Invite by Email</h3>
-                        <form class="invite-form" id="invite-form">
-                            <div class="email-input-group">
-                                <input type="email" id="invite-email" class="form-input" placeholder="teammate@email.com">
-                                <button type="button" class="add-email-btn" id="add-email-btn">Add</button>
-                            </div>
-                            <div class="email-list" id="email-list">
-                                <!-- Emails will be added here -->
-                            </div>
-                            <div class="form-section">
-                                <label class="form-label" for="invite-message">Personal message (optional)</label>
-                                <textarea id="invite-message" class="form-textarea small" placeholder="Add a personal note to your invitation..."></textarea>
-                            </div>
-                            <button type="submit" class="btn-primary full-width" id="send-invites-btn" disabled>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                                </svg>
-                                <span>Send Invitations</span>
-                            </button>
-                        </form>
+                <aside class="invite-aside">
+                    <h2 class="section-title">The roster</h2>
+                    <p class="roster-summary" id="roster-summary"></p>
+                    <ol class="roster" id="roster"></ol>
+                </aside>
+            </div>
+        </section>
+
+        <!-- Admin settings -->
+        <section class="view" id="view-settings" data-view="settings" hidden>
+            <div class="sheet">
+                <h1 class="sheet-title">Settings</h1>
+                <p class="sheet-lede">Changes here appear for everyone as soon as you save.</p>
+
+                <div class="settings-block" id="starter-block" hidden>
+                    <h2 class="section-title">Set up the archive</h2>
+                    <p>The front page text and the decade board are empty. Add starter text and decades from the 1920s to the 2020s, then edit them below.</p>
+                    <button type="button" class="button" id="starter-button">Add starter content</button>
+                </div>
+
+                <div class="settings-block">
+                    <h2 class="section-title">Membership requests</h2>
+                    <ul class="plain-list" id="pending-list"></ul>
+                </div>
+
+                <form class="settings-block entry-form" id="site-form">
+                    <h2 class="section-title">Front page</h2>
+                    <div class="field">
+                        <label class="field-label" for="site-title">Name on the board</label>
+                        <input type="text" id="site-title" maxlength="80">
                     </div>
-
-                    <div class="invite-stats-section">
-                        <h3>Community Growth</h3>
-                        <div class="community-stats">
-                            <div class="community-stat">
-                                <span class="stat-number">247</span>
-                                <span class="stat-label">Active Members</span>
-                            </div>
-                            <div class="community-stat">
-                                <span class="stat-number">8</span>
-                                <span class="stat-label">Decades Represented</span>
-                            </div>
-                            <div class="community-stat">
-                                <span class="stat-number">564</span>
-                                <span class="stat-label">Memories Shared</span>
-                            </div>
-                        </div>
-
-                        <div class="recent-joins">
-                            <h4>Recently Joined</h4>
-                            <ul class="joins-list">
-                                <li class="join-item">
-                                    <span class="avatar">TM</span>
-                                    <div class="join-info">
-                                        <span class="join-name">Tom Martinez '08</span>
-                                        <span class="join-time">Joined 2 hours ago</span>
-                                    </div>
-                                </li>
-                                <li class="join-item">
-                                    <span class="avatar">EW</span>
-                                    <div class="join-info">
-                                        <span class="join-name">Emily Wong '15</span>
-                                        <span class="join-time">Joined yesterday</span>
-                                    </div>
-                                </li>
-                                <li class="join-item">
-                                    <span class="avatar">RJ</span>
-                                    <div class="join-info">
-                                        <span class="join-name">Robert Jensen '72</span>
-                                        <span class="join-time">Joined 3 days ago</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="pending-invites">
-                            <h4>Your Pending Invites</h4>
-                            <ul class="pending-list">
-                                <li class="pending-item">
-                                    <span class="pending-email">john.doe@email.com</span>
-                                    <span class="pending-status">Sent 5 days ago</span>
-                                </li>
-                                <li class="pending-item">
-                                    <span class="pending-email">jane.smith@email.com</span>
-                                    <span class="pending-status">Sent 1 week ago</span>
-                                </li>
-                            </ul>
-                        </div>
+                    <div class="field">
+                        <label class="field-label" for="site-intro">Introduction <span class="optional">shown to visitors before they sign in</span></label>
+                        <textarea id="site-intro" rows="3"></textarea>
                     </div>
+                    <div class="field">
+                        <label class="field-label" for="site-welcome">Welcome note <span class="optional">shown to members above the decade pages</span></label>
+                        <textarea id="site-welcome" rows="2"></textarea>
+                    </div>
+                    <div class="field">
+                        <label class="field-label" for="site-footer">Footer line</label>
+                        <input type="text" id="site-footer" maxlength="120">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="button">Save front page</button>
+                    </div>
+                </form>
+
+                <div class="settings-block">
+                    <h2 class="section-title">Decades on the board</h2>
+                    <div class="decade-editor" id="decade-editor"></div>
+                    <form class="decade-add" id="decade-add-form">
+                        <label class="field-label" for="decade-add-year">Add a decade starting in</label>
+                        <input type="number" id="decade-add-year" min="1900" max="2100" step="10" placeholder="1910">
+                        <button type="submit" class="button-quiet">Add decade</button>
+                    </form>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Notification Settings Modal -->
-    <div class="modal-overlay" id="notification-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Notification Preferences</h3>
-                <button class="modal-close" aria-label="Close modal">&times;</button>
-            </div>
-            <div class="modal-content">
-                <p class="modal-intro">Stay connected with the archive. Choose what updates you'd like to receive.</p>
-
-                <div class="notification-options">
-                    <label class="notification-option">
-                        <input type="checkbox" checked>
-                        <span class="option-content">
-                            <span class="option-title">New memories from your era</span>
-                            <span class="option-desc">When someone adds content from your decade</span>
-                        </span>
-                    </label>
-                    <label class="notification-option">
-                        <input type="checkbox" checked>
-                        <span class="option-content">
-                            <span class="option-title">Tagged in a memory</span>
-                            <span class="option-desc">When someone mentions you in a story</span>
-                        </span>
-                    </label>
-                    <label class="notification-option">
-                        <input type="checkbox">
-                        <span class="option-content">
-                            <span class="option-title">All new uploads</span>
-                            <span class="option-desc">Get notified for every new memory added</span>
-                        </span>
-                    </label>
-                    <label class="notification-option">
-                        <input type="checkbox" checked>
-                        <span class="option-content">
-                            <span class="option-title">Weekly digest</span>
-                            <span class="option-desc">Summary of new content every Sunday</span>
-                        </span>
-                    </label>
-                </div>
-
-                <div class="email-frequency">
-                    <label class="form-label">Email frequency</label>
-                    <select class="form-select">
-                        <option value="instant">Instant</option>
-                        <option value="daily" selected>Daily digest</option>
-                        <option value="weekly">Weekly digest</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-secondary modal-cancel">Cancel</button>
-                <button class="btn-primary modal-save">Save Preferences</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Memory Detail Modal -->
-    <div class="modal-overlay" id="memory-modal">
-        <div class="modal memory-detail-modal">
-            <button class="modal-close" aria-label="Close modal">&times;</button>
-            <div class="memory-detail-content">
-                <div class="memory-image-large">
-                    <div class="placeholder-image pool-scene large">
-                        <span class="image-icon">📸</span>
-                    </div>
-                </div>
-                <div class="memory-detail-info">
-                    <span class="year-badge large">1994</span>
-                    <h3>Ivy League Championships Victory</h3>
-                    <div class="contributor-detail">
-                        <span class="avatar large">MK</span>
-                        <div class="contributor-info">
-                            <span class="contributor-name">Mike Kennedy '95</span>
-                            <span class="contributor-role">Team Captain, 1994-95</span>
-                        </div>
-                    </div>
-                    <div class="memory-full-story">
-                        <p>The moment we clinched the title. Coach Johnson's face said it all - years of 5am practices had finally paid off.</p>
-                        <p>This photo was taken right after the final relay. We knew going in that we needed to win it to take the overall championship. The pressure was immense, but somehow that made us swim faster.</p>
-                        <p>I still remember the sound in that natatorium - the echoes, the cheering, the splash of the finish. It's frozen in my memory forever.</p>
-                    </div>
-                    <div class="memory-reactions-detail">
-                        <button class="reaction-btn active">🏊 24</button>
-                        <button class="reaction-btn">💚 18</button>
-                        <button class="reaction-btn">🎉 5</button>
-                        <button class="reaction-btn add-reaction">+</button>
-                    </div>
-                    <div class="memory-comments">
-                        <h4>Comments</h4>
-                        <div class="comment">
-                            <span class="avatar small">JT</span>
-                            <div class="comment-content">
-                                <span class="comment-author">Jim Thompson '95</span>
-                                <p>I was in that relay! Still the highlight of my swimming career. Thanks for posting this, Mike.</p>
-                            </div>
-                        </div>
-                        <div class="comment">
-                            <span class="avatar small">SR</span>
-                            <div class="comment-content">
-                                <span class="comment-author">Sarah Reynolds '98</span>
-                                <p>Legends! This is the team that made me want to swim for Dartmouth.</p>
-                            </div>
-                        </div>
-                        <form class="comment-form">
-                            <input type="text" placeholder="Add a comment..." class="comment-input">
-                            <button type="submit" class="comment-submit">Post</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div class="toast-container" id="toast-container">
-        <!-- Toasts will be added here dynamically -->
-    </div>
-
-    <!-- Authentication Modal -->
-    <div class="modal-overlay" id="auth-modal">
-        <div class="modal auth-modal">
-            <div class="modal-header">
-                <h3 id="auth-modal-title">Sign In</h3>
-                <button class="modal-close" aria-label="Close modal">&times;</button>
-            </div>
-            <div class="modal-content">
-                <!-- Google Sign In Button -->
-                <button type="button" class="btn-google" id="google-sign-in-btn">
-                    <svg class="google-icon" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    <span>Continue with Google</span>
-                </button>
-
-                <div class="auth-divider">
-                    <span>or</span>
-                </div>
-
-                <div class="auth-tabs">
-                    <button class="auth-tab active" data-tab="login">Sign In</button>
-                    <button class="auth-tab" data-tab="register">Create Account</button>
-                </div>
-
-                <!-- Login Form -->
-                <form id="login-form" class="auth-form active">
-                    <div class="form-section">
-                        <label class="form-label" for="login-email">Email</label>
-                        <input type="email" id="login-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
-                    </div>
-                    <div class="form-section">
-                        <label class="form-label" for="login-password">Password</label>
-                        <input type="password" id="login-password" class="form-input" placeholder="Your password" required>
-                    </div>
-                    <button type="submit" class="btn-primary full-width">
-                        <span>Sign In</span>
-                    </button>
-                    <p class="auth-link">
-                        <a href="#" id="forgot-password-link">Forgot your password?</a>
-                    </p>
-                </form>
-
-                <!-- Register Form -->
-                <form id="register-form" class="auth-form">
-                    <div class="form-section">
-                        <label class="form-label" for="register-name">Full Name</label>
-                        <input type="text" id="register-name" class="form-input" placeholder="John Smith" required>
-                    </div>
-                    <div class="form-section">
-                        <label class="form-label" for="register-class-year">Class Year</label>
-                        <input type="number" id="register-class-year" class="form-input" placeholder="e.g., 1995" min="1900" max="2030" required>
-                    </div>
-                    <div class="form-section">
-                        <label class="form-label" for="register-email">Email</label>
-                        <input type="email" id="register-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
-                    </div>
-                    <div class="form-section">
-                        <label class="form-label" for="register-password">Password</label>
-                        <input type="password" id="register-password" class="form-input" placeholder="Create a password (min 6 characters)" minlength="6" required>
-                    </div>
-                    <button type="submit" class="btn-primary full-width">
-                        <span>Create Account</span>
-                    </button>
-                </form>
-
-                <!-- Forgot Password Form -->
-                <form id="forgot-password-form" class="auth-form">
-                    <p class="form-intro">Enter your email and we'll send you a link to reset your password.</p>
-                    <div class="form-section">
-                        <label class="form-label" for="reset-email">Email</label>
-                        <input type="email" id="reset-email" class="form-input" placeholder="your.email@dartmouth.edu" required>
-                    </div>
-                    <button type="submit" class="btn-primary full-width">
-                        <span>Send Reset Link</span>
-                    </button>
-                    <p class="auth-link">
-                        <a href="#" id="back-to-login-link">Back to Sign In</a>
-                    </p>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <footer class="main-footer">
-        <div class="footer-content">
-            <div class="footer-logo">
-                <img src="D-Pine_Rev.png" alt="Dartmouth D with Pine" class="dartmouth-logo small">
-            </div>
-            <p class="footer-tagline">Preserving Big Green Swimming History</p>
-            <p class="footer-copyright">© 2024 Dartmouth Swimming Alumni Association</p>
-        </div>
+    <footer class="footer">
+        <img src="d-pine.png" alt="" class="footer-mark" width="28" height="28">
+        <p data-site="footer"></p>
     </footer>
 
-    <!-- Firebase and App Scripts -->
-    <script src="firebase-config.js"></script>
-    <script src="auth.js"></script>
-    <script src="database.js"></script>
-    <script src="storage.js"></script>
-    <script src="app.js"></script>
+    <!-- A single memory -->
+    <dialog class="dialog memory-dialog" id="memory-dialog" aria-labelledby="memory-dialog-title">
+        <button type="button" class="dialog-close" data-close aria-label="Close">&times;</button>
+        <div id="memory-dialog-body"></div>
+    </dialog>
+
+    <!-- Sign in -->
+    <dialog class="dialog auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title">
+        <button type="button" class="dialog-close" data-close aria-label="Close">&times;</button>
+        <h2 class="dialog-title" id="auth-dialog-title">Sign in to the archive</h2>
+        <p class="dialog-lede">The archive is for Dartmouth swimmers, divers, coaches and managers.</p>
+
+        <button type="button" class="button google-button" id="google-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continue with Google
+        </button>
+
+        <p class="rule-text"><span>or use your email</span></p>
+
+        <div class="auth-tabs" role="tablist">
+            <button type="button" role="tab" class="auth-tab" data-auth-tab="sign-in" aria-selected="true">Sign in</button>
+            <button type="button" role="tab" class="auth-tab" data-auth-tab="register" aria-selected="false">Create an account</button>
+        </div>
+
+        <form class="entry-form auth-form" id="sign-in-form" data-auth-panel="sign-in">
+            <div class="field">
+                <label class="field-label" for="sign-in-email">Email</label>
+                <input type="email" id="sign-in-email" autocomplete="email" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="sign-in-password">Password</label>
+                <input type="password" id="sign-in-password" autocomplete="current-password" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="button-quiet" id="forgot-button">Reset password</button>
+                <button type="submit" class="button">Sign in</button>
+            </div>
+        </form>
+
+        <form class="entry-form auth-form" id="register-form" data-auth-panel="register" hidden>
+            <div class="field-row">
+                <div class="field">
+                    <label class="field-label" for="register-name">Your name</label>
+                    <input type="text" id="register-name" autocomplete="name" maxlength="80" required>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="register-year">Class year</label>
+                    <input type="number" id="register-year" inputmode="numeric" min="1900" max="2100" placeholder="1995">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label" for="register-email">Email <span class="optional">use the one your invite went to</span></label>
+                <input type="email" id="register-email" autocomplete="email" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="register-password">Password <span class="optional">at least 6 characters</span></label>
+                <input type="password" id="register-password" autocomplete="new-password" minlength="6" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button">Create account</button>
+            </div>
+        </form>
+
+        <p class="form-error" id="auth-error" role="alert" hidden></p>
+    </dialog>
+
+    <!-- Name and class year -->
+    <dialog class="dialog profile-dialog" id="profile-dialog" aria-labelledby="profile-dialog-title">
+        <button type="button" class="dialog-close" data-close aria-label="Close">&times;</button>
+        <h2 class="dialog-title" id="profile-dialog-title">Your details</h2>
+        <p class="dialog-lede">This is how teammates see you next to everything you share.</p>
+        <form class="entry-form" id="profile-form">
+            <div class="field">
+                <label class="field-label" for="profile-name">Name</label>
+                <input type="text" id="profile-name" maxlength="80" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="profile-year">Class year</label>
+                <input type="number" id="profile-year" inputmode="numeric" min="1900" max="2100" placeholder="1995">
+            </div>
+            <p class="form-error" id="profile-error" role="alert" hidden></p>
+            <div class="form-actions">
+                <button type="submit" class="button">Save details</button>
+            </div>
+        </form>
+    </dialog>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <script type="module" src="app.js"></script>
 </body>
 </html>

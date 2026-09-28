@@ -1,252 +1,123 @@
 /**
  * Storage Module for Dartmouth Swimming Alumni Archive
- * Handles file uploads to Firebase Storage
+ * Uploads photos and documents to memories/{memoryId}/ in Firebase Storage.
+ * storage.rules limits uploads to members, 10MB, images and PDFs.
  */
 
-const StorageModule = {
-    /**
-     * Upload a single file to Firebase Storage
-     * @param {File} file - The file to upload
-     * @param {string} memoryId - The memory ID to associate with this file
-     * @param {function} onProgress - Progress callback (0-100)
-     * @returns {Promise<string>} - Download URL of uploaded file
-     */
-    async uploadFile(file, memoryId, onProgress = null) {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            throw new Error('Must be signed in to upload files');
-        }
+import { auth, storage } from './firebase-config.js';
+import {
+    ref,
+    uploadBytesResumable,
+    getDownloadURL,
+    deleteObject
+} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js';
 
-        // Validate file
-        const validation = this.validateFile(file);
-        if (!validation.valid) {
-            throw new Error(validation.error);
-        }
+export const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
 
-        // Create unique filename
-        const timestamp = Date.now();
-        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const path = `memories/${memoryId}/${timestamp}_${sanitizedName}`;
-
-        const storageRef = firebase.storage().ref(path);
-        const uploadTask = storageRef.put(file, {
-            customMetadata: {
-                uploadedBy: user.uid,
-                originalName: file.name,
-                memoryId: memoryId
-            }
-        });
-
-        return new Promise((resolve, reject) => {
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    // Progress
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    if (onProgress) {
-                        onProgress(progress);
-                    }
-                },
-                (error) => {
-                    // Error
-                    console.error('Upload error:', error);
-                    reject(error);
-                },
-                async () => {
-                    // Complete
-                    try {
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        resolve({
-                            url: downloadURL,
-                            path: path,
-                            name: file.name,
-                            size: file.size,
-                            type: file.type
-                        });
-                    } catch (error) {
-                        reject(error);
-                    }
-                }
-            );
-        });
-    },
-
-    /**
-     * Upload multiple files
-     * @param {FileList|Array} files - Files to upload
-     * @param {string} memoryId - Memory ID
-     * @param {function} onProgress - Progress callback with overall progress
-     * @returns {Promise<Array>} - Array of upload results
-     */
-    async uploadMultipleFiles(files, memoryId, onProgress = null) {
-        const fileArray = Array.from(files);
-        const results = [];
-        let completedBytes = 0;
-        const totalBytes = fileArray.reduce((sum, f) => sum + f.size, 0);
-
-        for (let i = 0; i < fileArray.length; i++) {
-            const file = fileArray[i];
-
-            try {
-                const result = await this.uploadFile(file, memoryId, (fileProgress) => {
-                    if (onProgress) {
-                        const fileBytes = (fileProgress / 100) * file.size;
-                        const overallProgress = ((completedBytes + fileBytes) / totalBytes) * 100;
-                        onProgress(overallProgress, i + 1, fileArray.length);
-                    }
-                });
-
-                completedBytes += file.size;
-                results.push(result);
-            } catch (error) {
-                console.error(`Error uploading file ${file.name}:`, error);
-                results.push({
-                    error: error.message,
-                    name: file.name
-                });
-            }
-        }
-
-        return results;
-    },
-
-    /**
-     * Validate file before upload
-     */
-    validateFile(file) {
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        const allowedTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'application/pdf'
-        ];
-
-        if (file.size > maxSize) {
-            return {
-                valid: false,
-                error: `File "${file.name}" exceeds 10MB limit`
-            };
-        }
-
-        if (!allowedTypes.includes(file.type)) {
-            return {
-                valid: false,
-                error: `File type "${file.type}" is not allowed. Please upload images or PDFs.`
-            };
-        }
-
-        return { valid: true };
-    },
-
-    /**
-     * Delete a file from storage
-     */
-    async deleteFile(filePath) {
-        try {
-            const storageRef = firebase.storage().ref(filePath);
-            await storageRef.delete();
-            return true;
-        } catch (error) {
-            console.error('Error deleting file:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Get a thumbnail URL for an image
-     * Note: For production, you'd want to use Cloud Functions to generate actual thumbnails
-     * This uses Firebase Storage's built-in image resizing if using the resize images extension
-     */
-    getThumbnailUrl(originalUrl, width = 400) {
-        // If using Firebase Extensions - Resize Images, thumbnails are auto-generated
-        // This is a simple approach that works with the extension
-        if (originalUrl.includes('firebasestorage.googleapis.com')) {
-            // Attempt to get resized version (if extension is installed)
-            return originalUrl.replace(/(\.[^.]+)$/, `_${width}x${width}$1`);
-        }
-        return originalUrl;
-    },
-
-    /**
-     * Compress image before upload (client-side)
-     * @param {File} file - Image file
-     * @param {number} maxWidth - Maximum width
-     * @param {number} quality - JPEG quality (0-1)
-     * @returns {Promise<Blob>}
-     */
-    async compressImage(file, maxWidth = 1920, quality = 0.8) {
-        return new Promise((resolve, reject) => {
-            // Only compress images
-            if (!file.type.startsWith('image/')) {
-                resolve(file);
-                return;
-            }
-
-            const img = new Image();
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            img.onload = () => {
-                let { width, height } = img;
-
-                // Calculate new dimensions
-                if (width > maxWidth) {
-                    height = (height * maxWidth) / width;
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                // Draw and compress
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            // Create new file with same name
-                            const compressedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
-                            resolve(compressedFile);
-                        } else {
-                            resolve(file);
-                        }
-                    },
-                    'image/jpeg',
-                    quality
-                );
-            };
-
-            img.onerror = () => {
-                reject(new Error('Failed to load image for compression'));
-            };
-
-            img.src = URL.createObjectURL(file);
-        });
-    },
-
-    /**
-     * Upload with automatic compression
-     */
-    async uploadWithCompression(file, memoryId, onProgress = null) {
-        let fileToUpload = file;
-
-        // Compress images larger than 2MB
-        if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
-            try {
-                fileToUpload = await this.compressImage(file);
-                console.log(`Compressed ${file.name}: ${file.size} -> ${fileToUpload.size}`);
-            } catch (error) {
-                console.warn('Compression failed, uploading original:', error);
-            }
-        }
-
-        return this.uploadFile(fileToUpload, memoryId, onProgress);
+/**
+ * Returns an error sentence, or null if the file can be uploaded
+ */
+export function validateFile(file) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+        return `"${file.name}" isn't a JPG, PNG, GIF, WebP or PDF.`;
     }
-};
+    if (file.size > MAX_FILE_SIZE && file.type === 'application/pdf') {
+        return `"${file.name}" is over 10MB. Try a smaller scan.`;
+    }
+    return null;
+}
 
-// Export module
-window.StorageModule = StorageModule;
+/**
+ * Upload files one after another.
+ * onProgress(fraction 0–1) reports progress across all files.
+ */
+export async function uploadFiles(files, memoryId, onProgress) {
+    const prepared = [];
+    for (const file of files) {
+        prepared.push(await compressImage(file));
+    }
+
+    const totalBytes = prepared.reduce((sum, f) => sum + f.size, 0) || 1;
+    let doneBytes = 0;
+    const results = [];
+
+    for (const file of prepared) {
+        const result = await uploadFile(file, memoryId, (bytes) => {
+            if (onProgress) onProgress((doneBytes + bytes) / totalBytes);
+        });
+        doneBytes += file.size;
+        results.push(result);
+    }
+    return results;
+}
+
+function uploadFile(file, memoryId, onBytes) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const path = `memories/${memoryId}/${Date.now()}_${safeName}`;
+    const task = uploadBytesResumable(ref(storage, path), file, {
+        contentType: file.type,
+        customMetadata: { uploadedBy: auth.currentUser.uid }
+    });
+
+    return new Promise((resolve, reject) => {
+        task.on('state_changed',
+            snapshot => onBytes(snapshot.bytesTransferred),
+            reject,
+            async () => {
+                try {
+                    const url = await getDownloadURL(task.snapshot.ref);
+                    resolve({
+                        url,
+                        path,
+                        name: file.name,
+                        type: file.type,
+                        width: file.width || null,
+                        height: file.height || null
+                    });
+                } catch (error) {
+                    reject(error);
+                }
+            }
+        );
+    });
+}
+
+export async function deleteFiles(files) {
+    await Promise.all((files || []).map(f =>
+        deleteObject(ref(storage, f.path)).catch(error => {
+            // Already gone is fine; anything else is worth knowing about
+            if (error.code !== 'storage/object-not-found') console.error('Error deleting file:', error);
+        })
+    ));
+}
+
+/**
+ * Shrink large photos to 2000px on the long edge before upload, and
+ * record dimensions so the page can reserve space before images load.
+ */
+async function compressImage(file) {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+
+    const bitmap = await createImageBitmap(file).catch(() => null);
+    if (!bitmap) return file;
+
+    const maxEdge = 2000;
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    if (scale === 1 && file.size <= 2 * 1024 * 1024) {
+        return Object.assign(file, { width, height });
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    if (!blob) return file;
+
+    const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return Object.assign(new File([blob], name, { type: 'image/jpeg' }), { width, height });
+}
