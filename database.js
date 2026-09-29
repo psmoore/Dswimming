@@ -7,7 +7,7 @@
  * Collections
  *   site/home                    title, intro, welcome, footer (admin-edited)
  *   decades/{id}                 label, tagline, startYear (admin-edited)
- *   memories/{id}                a photo, story or document
+ *   memories/{id}                a photo, story or document; likedBy (uids), commentCount
  *     comments/{id}              comments on a memory
  *     witnesses/{uid}            members who marked "I was there"
  *   users/{uid}                  public member profile, visible to members
@@ -28,9 +28,11 @@ import {
     setDoc,
     updateDoc,
     deleteDoc,
-    addDoc,
     writeBatch,
-    serverTimestamp
+    serverTimestamp,
+    increment,
+    arrayUnion,
+    arrayRemove
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
 function withIds(snapshot) {
@@ -124,6 +126,8 @@ export async function createMemory(memoryId, fields, author) {
         authorId: auth.currentUser.uid,
         authorName: author.displayName,
         authorClassYear: author.classYear || null,
+        likedBy: [],
+        commentCount: 0,
         createdAt: serverTimestamp()
     });
 }
@@ -149,8 +153,19 @@ export async function deleteMemory(memoryId) {
 }
 
 // ================================
-// Comments & "I was there"
+// Likes, comments & "I was there"
 // ================================
+
+/**
+ * Likes are the member uids in memory.likedBy; the rules only let a
+ * member add or remove their own
+ */
+export async function setLike(memoryId, liked) {
+    const uid = auth.currentUser.uid;
+    await updateDoc(doc(db, 'memories', memoryId), {
+        likedBy: liked ? arrayUnion(uid) : arrayRemove(uid)
+    });
+}
 
 export function watchComments(memoryId, onData, onError) {
     return watch(
@@ -160,18 +175,34 @@ export function watchComments(memoryId, onData, onError) {
     );
 }
 
+/**
+ * Comments and the memory's commentCount change together in one batch,
+ * which the rules require, so the count on each card stays accurate
+ */
 export async function addComment(memoryId, text, author) {
-    await addDoc(collection(db, 'memories', memoryId, 'comments'), {
+    const batch = writeBatch(db);
+    batch.set(doc(collection(db, 'memories', memoryId, 'comments')), {
         text,
         authorId: auth.currentUser.uid,
         authorName: author.displayName,
         authorClassYear: author.classYear || null,
         createdAt: serverTimestamp()
     });
+    batch.update(doc(db, 'memories', memoryId), { commentCount: increment(1) });
+    await batch.commit();
 }
 
-export async function deleteComment(memoryId, commentId) {
-    await deleteDoc(doc(db, 'memories', memoryId, 'comments', commentId));
+/**
+ * currentCount is the memory's commentCount; comments made before counts
+ * existed leave it at 0, and are removed without changing it
+ */
+export async function deleteComment(memoryId, commentId, currentCount) {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'memories', memoryId, 'comments', commentId));
+    if (currentCount > 0) {
+        batch.update(doc(db, 'memories', memoryId), { commentCount: increment(-1) });
+    }
+    await batch.commit();
 }
 
 export function watchWitnesses(memoryId, onData, onError) {

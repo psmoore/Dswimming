@@ -419,35 +419,112 @@ function memoryCard(memory) {
 
     if (images.length) {
         const cover = images[0];
-        return h('a', { class: `snapshot type-${memory.type}`, href: open, style: { '--tilt': `${tiltFor(memory.id)}deg` } },
-            h('span', { class: 'mount' },
-                h('img', {
-                    src: cover.url,
-                    alt: memory.title,
-                    loading: 'lazy',
-                    width: cover.width,
-                    height: cover.height
-                }),
-                h('span', { class: 'corners', 'aria-hidden': 'true' }),
-                memory.year ? h('span', { class: 'stamp' }, memory.year) : null
-            ),
-            h('span', { class: 'caption' },
-                h('span', { class: 'caption-title' }, memory.title),
-                h('span', { class: 'caption-meta' },
-                    byline,
-                    images.length > 1 ? `. ${images.length} photos` : ''
+        return h('article', { class: `card snapshot type-${memory.type}`, style: { '--tilt': `${tiltFor(memory.id)}deg` } },
+            h('a', { class: 'card-link', href: open },
+                h('span', { class: 'mount' },
+                    h('img', {
+                        src: cover.url,
+                        alt: memory.title,
+                        loading: 'lazy',
+                        width: cover.width,
+                        height: cover.height
+                    }),
+                    h('span', { class: 'corners', 'aria-hidden': 'true' }),
+                    memory.year ? h('span', { class: 'stamp' }, memory.year) : null
+                ),
+                h('span', { class: 'caption' },
+                    h('span', { class: 'caption-title' }, memory.title),
+                    h('span', { class: 'caption-meta' },
+                        byline,
+                        images.length > 1 ? `. ${images.length} photos` : ''
+                    )
                 )
-            )
+            ),
+            cardActions(memory)
         );
     }
 
     const pdf = (memory.files || []).find(f => f.type === 'application/pdf');
-    return h('a', { class: `entry type-${memory.type}`, href: open },
-        h('span', { class: 'entry-title' }, memory.title),
-        memory.story ? h('span', { class: 'entry-text' }, excerpt(memory.story)) : null,
-        pdf ? h('span', { class: 'entry-file' }, pdf.name) : null,
-        h('span', { class: 'caption-meta' }, byline)
+    return h('article', { class: `card entry type-${memory.type}` },
+        h('a', { class: 'card-link', href: open },
+            h('span', { class: 'entry-title' }, memory.title),
+            memory.story ? h('span', { class: 'entry-text' }, excerpt(memory.story)) : null,
+            pdf ? h('span', { class: 'entry-file' }, pdf.name) : null,
+            h('span', { class: 'caption-meta' }, byline)
+        ),
+        cardActions(memory)
     );
+}
+
+// ================================
+// Likes & comment counts
+// ================================
+const HEART = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.5 8.2 3.4 4.8 6.9 4.5c2-.2 3.8.9 5.1 2.6 1.3-1.7 3.1-2.8 5.1-2.6 3.5.3 5.4 3.7 4.2 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>';
+const SPEECH = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 5.5h16v10H9.5L5 19.5v-4H4z"/></svg>';
+
+function icon(svg) {
+    // Static markup only; nothing a member typed goes through here
+    const span = h('span', { class: 'action-icon' });
+    span.innerHTML = svg;
+    return span;
+}
+
+function likeButton(memory, { large = false } = {}) {
+    const likedBy = memory.likedBy || [];
+    const liked = likedBy.includes(state.user?.uid);
+    return h('button', {
+        type: 'button',
+        class: `action like-button${large ? ' large' : ''}`,
+        'aria-pressed': liked ? 'true' : 'false',
+        'aria-label': `${liked ? 'Unlike' : 'Like'} “${memory.title}”${likedBy.length ? `, ${plural(likedBy.length, 'like')}` : ''}`,
+        onclick: async () => {
+            try {
+                await Data.setLike(memory.id, !liked);
+            } catch (error) {
+                toast(describeError(error), { tone: 'error' });
+            }
+        }
+    },
+        icon(HEART),
+        large ? h('span', {}, liked ? 'Liked' : 'Like') : null,
+        likedBy.length ? h('span', { class: 'action-count' }, likedBy.length) : null
+    );
+}
+
+function cardActions(memory) {
+    const comments = memory.commentCount || 0;
+    return h('div', { class: 'card-actions' },
+        likeButton(memory),
+        h('a', {
+            class: 'action',
+            href: `#/memory/${encodeURIComponent(memory.id)}`,
+            'aria-label': comments ? `${plural(comments, 'comment')} on “${memory.title}”` : `Comment on “${memory.title}”`,
+            onclick: () => { state.focusComments = true; }
+        },
+            icon(SPEECH),
+            h('span', { class: 'action-count' }, comments || 'Comment')
+        )
+    );
+}
+
+/**
+ * "Liked by you, Ada Lindqvist '89 and 3 others"
+ */
+function likedByText(likedBy) {
+    const me = state.user?.uid;
+    const byId = new Map(state.members.map(m => [m.id, m]));
+    const names = [];
+    if (likedBy.includes(me)) names.push('you');
+    for (const uid of likedBy) {
+        if (uid === me || names.length >= 3) continue;
+        const member = byId.get(uid);
+        if (member) names.push(nameWithClass(member.displayName, member.classYear));
+    }
+    const others = likedBy.length - names.length;
+    if (!names.length) return plural(likedBy.length, 'like');
+    if (others > 0) return `Liked by ${names.join(', ')} and ${plural(others, 'other')}`;
+    if (names.length === 1) return `Liked by ${names[0]}`;
+    return `Liked by ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 // ================================
@@ -465,6 +542,8 @@ function openMemoryDialog(id) {
     }
     renderMemoryDialog();
     if (!dialog.open) dialog.showModal();
+    // Scrolling to the comments only works once the dialog is showing
+    if (state.focusComments) renderMemoryDialog();
 }
 
 function closeMemoryDialog({ keepOpen = false } = {}) {
@@ -520,6 +599,11 @@ function renderMemoryDialog() {
                 h('a', { href: file.url, target: '_blank', rel: 'noopener' }, `Open ${file.name}`)
             )),
 
+            h('div', { class: 'likes' },
+                likeButton(memory, { large: true }),
+                (memory.likedBy || []).length ? h('p', {}, likedByText(memory.likedBy)) : null
+            ),
+
             h('div', { class: 'witness' },
                 h('button', {
                     type: 'button',
@@ -567,7 +651,7 @@ function renderMemoryDialog() {
                     h('p', {}, comment.text),
                     (comment.authorId === state.user?.uid || mine || isAdmin())
                         ? h('button', { type: 'button', class: 'link-button', onclick: async () => {
-                            try { await Data.deleteComment(memory.id, comment.id); }
+                            try { await Data.deleteComment(memory.id, comment.id, memory.commentCount || 0); }
                             catch (error) { toast(describeError(error), { tone: 'error' }); }
                         } }, 'Delete comment')
                         : null
@@ -584,6 +668,13 @@ function renderMemoryDialog() {
     const textarea = $('#comment-text', body);
     textarea.value = draft;
     if (hadFocus) textarea.focus();
+
+    // Arrived from a card's comment count: go straight to the conversation
+    if (state.focusComments && $('#memory-dialog').open) {
+        state.focusComments = false;
+        $('.comments', body).scrollIntoView({ block: 'start' });
+        textarea.focus({ preventScroll: true });
+    }
 }
 
 async function postComment(event, memoryId) {

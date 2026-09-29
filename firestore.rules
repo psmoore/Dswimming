@@ -106,7 +106,8 @@ service cloud.firestore {
 
     function isMemory(data) {
       return data.keys().hasOnly(['type', 'title', 'story', 'decade', 'year', 'people', 'files',
-                                  'authorId', 'authorName', 'authorClassYear', 'createdAt', 'updatedAt'])
+                                  'authorId', 'authorName', 'authorClassYear', 'createdAt', 'updatedAt',
+                                  'likedBy', 'commentCount'])
         && data.type in ['photo', 'story', 'document']
         && isText(data.title, 1, 140)
         && isText(data.story, 0, 5000)
@@ -117,8 +118,39 @@ service cloud.firestore {
         && data.files is list && data.files.size() <= 10;
     }
 
+    function memoryPath(memoryId) {
+      return /databases/$(database)/documents/memories/$(memoryId);
+    }
+
     function memoryAuthor(memoryId) {
-      return get(/databases/$(database)/documents/memories/$(memoryId)).data.authorId;
+      return get(memoryPath(memoryId)).data.authorId;
+    }
+
+    // Likes: a member adds or removes exactly their own uid in likedBy, nothing else
+    function isOwnLikeToggle() {
+      let before = resource.data.get('likedBy', []).toSet();
+      let after = request.resource.data.likedBy.toSet();
+      let me = [request.auth.uid].toSet();
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy'])
+        && request.resource.data.likedBy is list
+        && request.resource.data.likedBy.size() == after.size()
+        && ((after.difference(before) == me && before.difference(after).size() == 0)
+            || (before.difference(after) == me && after.difference(before).size() == 0));
+    }
+
+    // Comment count moves by exactly one; the comment rules below require the
+    // matching change, so it can only move together with a real comment
+    function isCommentCountStep() {
+      let before = resource.data.get('commentCount', 0);
+      let after = request.resource.data.commentCount;
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+        && after is int && after >= 0
+        && (after == before + 1 || after == before - 1);
+    }
+
+    function commentCountChange(memoryId) {
+      return getAfter(memoryPath(memoryId)).data.get('commentCount', 0)
+           - get(memoryPath(memoryId)).data.get('commentCount', 0);
     }
 
     match /memories/{memoryId} {
@@ -127,28 +159,44 @@ service cloud.firestore {
       allow create: if isMember()
         && isMemory(request.resource.data)
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('likedBy', []) == []
+        && request.resource.data.get('commentCount', 0) == 0;
 
+      // Author or admin edits the memory itself; likes and comment counts stay as they are
       allow update: if isMember()
         && (resource.data.authorId == request.auth.uid || isAdmin())
         && isMemory(request.resource.data)
         && request.resource.data.authorId == resource.data.authorId
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('likedBy', []) == resource.data.get('likedBy', [])
+        && request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0);
+
+      allow update: if isMember() && (isOwnLikeToggle() || isCommentCountStep());
 
       allow delete: if isMember()
         && (resource.data.authorId == request.auth.uid || isAdmin());
 
       match /comments/{commentId} {
         allow read: if isMember();
+
+        // Posted together with commentCount + 1 on the memory, in one batch
         allow create: if isMember()
           && request.resource.data.keys().hasOnly(['text', 'authorId', 'authorName', 'authorClassYear', 'createdAt'])
           && isText(request.resource.data.text, 1, 1000)
           && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.createdAt == request.time;
+          && request.resource.data.createdAt == request.time
+          && commentCountChange(memoryId) == 1;
+
+        // Removed together with commentCount - 1, or along with the whole memory.
+        // Comments from before counts existed (count 0) can be removed without one.
         allow delete: if isMember()
           && (resource.data.authorId == request.auth.uid
               || memoryAuthor(memoryId) == request.auth.uid
-              || isAdmin());
+              || isAdmin())
+          && (!existsAfter(memoryPath(memoryId))
+              || commentCountChange(memoryId) == -1
+              || get(memoryPath(memoryId)).data.get('commentCount', 0) == 0);
       }
 
       // One "I was there" mark per member, stored under their uid

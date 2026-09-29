@@ -631,8 +631,13 @@ body.is-loading .footer {
     text-decoration: none;
 }
 
-.snapshot:hover,
-.entry:hover {
+.card-link {
+    display: block;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.card-link:hover {
     color: var(--ink);
 }
 
@@ -657,8 +662,8 @@ body.is-loading .footer {
     transition: filter 250ms ease;
 }
 
-.snapshot:hover .mount img,
-.snapshot:focus-visible .mount img {
+.card-link:hover .mount img,
+.card-link:focus-visible .mount img {
     filter: none;
 }
 
@@ -746,8 +751,8 @@ body.is-loading .footer {
     line-height: 1.2;
 }
 
-.snapshot:hover .caption-title,
-.entry:hover .entry-title {
+.card-link:hover .caption-title,
+.card-link:hover .entry-title {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.18em;
@@ -788,6 +793,66 @@ body.is-loading .footer {
     border-left: 3px solid var(--paper-edge);
     font-size: 0.95rem;
     color: var(--ink-soft);
+}
+
+/* Likes and comment counts under each card */
+.card-actions {
+    display: flex;
+    gap: 4px;
+    margin: 6px 0 0 -6px;
+}
+
+.action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 6px 10px;
+    font-family: var(--text);
+    font-size: 0.95rem;
+    color: var(--ink-faint);
+    text-decoration: none;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.action:hover {
+    color: var(--ink);
+    background: rgba(92, 75, 56, 0.08);
+}
+
+.action-icon {
+    display: inline-flex;
+}
+
+.action-icon svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+
+.like-button[aria-pressed="true"] {
+    color: var(--brick);
+}
+
+.like-button[aria-pressed="true"] svg {
+    fill: var(--brick);
+}
+
+.like-button.large {
+    min-height: 44px;
+    padding: 0.55em 1.1em;
+    font-weight: 700;
+    color: var(--ink);
+    border: 1px solid var(--ink-faint);
+}
+
+.like-button.large[aria-pressed="true"] {
+    color: var(--brick);
+    border-color: var(--brick);
 }
 
 /* ================================
@@ -1434,16 +1499,25 @@ textarea:focus-visible {
     font-weight: 700;
 }
 
+.likes,
 .witness {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px 18px;
+}
+
+.likes {
     margin-top: 30px;
     padding-top: 20px;
     border-top: 1px dotted var(--paper-edge);
 }
 
+.witness {
+    margin-top: 14px;
+}
+
+.likes p,
 .witness p {
     margin: 0;
     color: var(--ink-soft);

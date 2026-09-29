@@ -90,7 +90,7 @@ await env.withSecurityRulesDisabled(async (ctx) => {
 
     await mem('m1', { type: 'photo', title: 'Ivy Championships, the 400 free relay', decade: '1990s', year: 1994,
         story: 'The moment we clinched it. Years of 5am practices, and it came down to the last relay.\n\nI still remember the sound in that natatorium: the echoes, the cheering, the slap of the touchpad.',
-        people: ['Jim Thompson ’95', 'Sarah Reynolds ’98'], files: [await upload('m1', 'relay.svg', photo(1200, 800, 'pool', 3), 1200, 800)] });
+        people: ['Jim Thompson ’95', 'Sarah Reynolds ’98'], likedBy: [adminId], commentCount: 1, files: [await upload('m1', 'relay.svg', photo(1200, 800, 'pool', 3), 1200, 800)] });
     await mem('m2', { type: 'story', title: 'The bus ride to Princeton', decade: '1990s', year: 1997, authorId: adminId, authorName: 'Ada Lindqvist', authorClassYear: 1989,
         story: 'What was supposed to be a four-hour trip turned into an eleven-hour odyssey through a Connecticut ice storm. We ran out of snacks by Hartford and started a team-wide game of twenty questions that nobody ever won.\n\nWe swam the next morning on four hours of sleep. Half of us had best times.' });
     await mem('m3', { type: 'photo', title: 'Team photo, freshman year', decade: '1990s', year: 1991,

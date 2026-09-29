@@ -1,5 +1,5 @@
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, collection, query, where, serverTimestamp, deleteField, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, collection, query, where, serverTimestamp, deleteField, writeBatch, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes } from 'firebase/storage';
 import { readFileSync } from 'node:fs';
 
@@ -87,7 +87,11 @@ await t('another member cannot edit', () => assertFails(updateDoc(doc(invitee, '
 await t('admin edits any memory', () => assertSucceeds(updateDoc(doc(admin, 'memories/m1'), { title: 'Admin' })));
 
 console.log('Comments & witnesses');
-await t('member comments', () => assertSucceeds(setDoc(doc(mem, 'memories/m1/comments/c2'), { text: 'hi', authorId: 'mem', authorName: 'Mo', authorClassYear: 1995, createdAt: serverTimestamp() })));
+const comment = (text = 'hi') => ({ text, authorId: 'mem', authorName: 'Mo', authorClassYear: 1995, createdAt: serverTimestamp() });
+const commentBatch = (ctx, id, count) => { const b = writeBatch(ctx); b.set(doc(ctx, `memories/m1/comments/${id}`), comment()); if (count) b.update(doc(ctx, 'memories/m1'), { commentCount: increment(count) }); return b.commit(); };
+await t('member comments (with count + 1)', () => assertSucceeds(commentBatch(mem, 'c2', 1)));
+await t('comment without count change refused', () => assertFails(commentBatch(mem, 'c4', 0)));
+await t('comment with count + 2 refused', () => assertFails(commentBatch(mem, 'c5', 2)));
 await t('empty comment refused', () => assertFails(setDoc(doc(mem, 'memories/m1/comments/c3'), { text: '', authorId: 'mem', authorName: 'Mo', authorClassYear: 1995, createdAt: serverTimestamp() })));
 await t('member marks I was there', () => assertSucceeds(setDoc(doc(mem, 'memories/m1/witnesses/mem'), { displayName: 'Mo', classYear: 1995, createdAt: serverTimestamp() })));
 await t('cannot mark for someone else', () => assertFails(setDoc(doc(mem, 'memories/m1/witnesses/admin'), { displayName: 'Ada', classYear: 1990, createdAt: serverTimestamp() })));
@@ -98,6 +102,36 @@ await t('memory author deletes memory with others\' comments (batch)', async () 
     batch.delete(doc(mem, 'memories/m1/witnesses/mem'));
     batch.delete(doc(mem, 'memories/m1'));
     await assertSucceeds(batch.commit());
+});
+
+console.log('Likes & comment counts');
+await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'memories/L1'), { type: 'story', title: 'L', story: 's', decade: '1990s', year: null, people: [], files: [], authorId: 'admin', authorName: 'Ada', authorClassYear: 1990, likedBy: ['admin'], commentCount: 1, createdAt: new Date() }));
+await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'memories/L1/comments/k1'), { text: 'x', authorId: 'mem', authorName: 'Mo', authorClassYear: 1995, createdAt: new Date() }));
+await t('member likes', () => assertSucceeds(updateDoc(doc(mem, 'memories/L1'), { likedBy: arrayUnion('mem') })));
+await t('member unlikes', () => assertSucceeds(updateDoc(doc(mem, 'memories/L1'), { likedBy: arrayRemove('mem') })));
+await t('cannot like for someone else', () => assertFails(updateDoc(doc(mem, 'memories/L1'), { likedBy: ['admin', 'pend'] })));
+await t('cannot remove someone else\'s like', () => assertFails(updateDoc(doc(mem, 'memories/L1'), { likedBy: [] })));
+await t('cannot like twice (duplicate uid)', () => assertFails(updateDoc(doc(mem, 'memories/L1'), { likedBy: ['admin', 'mem', 'mem'] })));
+await t('cannot change title along with a like', () => assertFails(updateDoc(doc(mem, 'memories/L1'), { likedBy: arrayUnion('mem'), title: 'hijacked' })));
+await t('pending cannot like', () => assertFails(updateDoc(doc(pend, 'memories/L1'), { likedBy: arrayUnion('pend') })));
+await t('author edit cannot reset likes', () => assertFails(updateDoc(doc(admin, 'memories/L1'), { title: 'New', likedBy: [] })));
+await t('author edit keeping likes works', () => assertSucceeds(updateDoc(doc(admin, 'memories/L1'), { title: 'New' })));
+await t('new memory cannot start with likes', () => assertFails(setDoc(doc(mem, 'memories/L2'), memory({ likedBy: ['mem'] }))));
+await t('new memory cannot start with a comment count', () => assertFails(setDoc(doc(mem, 'memories/L3'), memory({ commentCount: 5 }))));
+await t('comment count cannot go below zero', async () => {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'memories/L4'), { type: 'story', title: 'L', story: 's', decade: '1990s', year: null, people: [], files: [], authorId: 'admin', authorName: 'Ada', authorClassYear: 1990, commentCount: 0, createdAt: new Date() }));
+    await assertFails(updateDoc(doc(mem, 'memories/L4'), { commentCount: -1 }));
+});
+await t('deleting a comment without count - 1 refused', () => assertFails(deleteDoc(doc(mem, 'memories/L1/comments/k1'))));
+await t('deleting a comment with count - 1 works', async () => {
+    const b = writeBatch(mem);
+    b.delete(doc(mem, 'memories/L1/comments/k1'));
+    b.update(doc(mem, 'memories/L1'), { commentCount: increment(-1) });
+    await assertSucceeds(b.commit());
+});
+await t('comment from before counts (count 0) can be deleted', async () => {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'memories/L4/comments/old'), { text: 'old', authorId: 'mem', authorName: 'Mo', authorClassYear: 1995, createdAt: new Date() }));
+    await assertSucceeds(deleteDoc(doc(mem, 'memories/L4/comments/old')));
 });
 
 console.log('Invites');

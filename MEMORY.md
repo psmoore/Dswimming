@@ -1,7 +1,7 @@
 # Project Memory: Dartmouth Swimming Alumni Archive
 
 ## Current Status & "The North Star"
-*Last Updated: 2026-09-28*
+*Last Updated: 2026-09-29*
 - **North Star:** A private, living archive where Dartmouth swim & dive alumni share photos, stories and documents, organized by decade.
 - **Live at:** https://www.dartmouthswimming.com (GitHub Pages, repo `psmoore/Dswimming`, branch `master`)
 - **Current State:** Redesign is live. Project is on the Blaze plan. Firestore and Storage rules were published by pasting into the Firebase console (Storage cross-service permission attached); the owner's account is set as admin; starter decades added (1920s removed). ~190 alumni from the 2015 reunion captains' sheet are being added to the invite list (no emails sent) ahead of a conference call on 2026-09-29.
@@ -28,7 +28,7 @@
 |---|---|---|
 | `site/home` | title, intro, welcome, footer | anyone |
 | `decades/{1990s}` | label, tagline, startYear | anyone |
-| `memories/{id}` | type, title, story, decade, year, people, files, author fields | members |
+| `memories/{id}` | type, title, story, decade, year, people, files, author fields, `likedBy` (member uids), `commentCount` | members |
 | `memories/{id}/comments/{id}` | text, author fields | members |
 | `memories/{id}/witnesses/{uid}` | "I was there" marks | members |
 | `users/{uid}` | displayName, classYear, status, role, joinedAt | self + members |
@@ -66,6 +66,12 @@
 
 ---
 
+7. **2026-09-29: Likes live on the memory; comment counts move with comments**
+   - **Context:** Owner asked for social-network-style likes and comments on posts.
+   - **Decision:** `likedBy` is an array of uids on the memory (rules: a member can only add/remove their own uid). `commentCount` is a counter; the rules require each comment create/delete to change it by exactly ±1 in the same batch. Cards show a heart + count and a comment count; the open memory shows "Liked by …" using names from the member roster.
+   - **Reasoning:** One listener already loads all memories, so counts and "liked by me" come free, with no extra queries or indexes.
+   - **Consequence:** Keep writes to comments batched with the count (see `database.js`). A member could still nudge `commentCount` by one on its own; accepted, since members are vetted alumni.
+
 ## Known Constraints & "Do Not" List
 - **Firebase web config is public by design** — protection comes from the rules.
 - **CNAME:** Don't delete or rename it.
@@ -80,4 +86,4 @@
 - [ ] Decide whether to send invite and new-memory emails automatically (needs Cloud Functions or the Trigger Email extension, both on the Blaze plan)
 - [ ] Optional: Firebase App Check to limit API abuse
 - [x] Redesign: vintage paper, walnut, honor board (2026-09-27)
-- [x] Replace all fake content with live Firestore data; members-only rules with 54 tests (2026-09-27)
+- [x] Likes and comment counts on cards; rules tests now 71 (2026-09-29)
