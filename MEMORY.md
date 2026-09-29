@@ -9,7 +9,7 @@
 
 ### Setup notes
 - Rules are deployed by pasting `firestore.rules` / `storage.rules` into the Firebase console Rules editors (the Firebase CLI login wasn't completed). Re-paste after any rules change.
-- Still unverified: Authentication › Settings › Authorized domains includes `www.dartmouthswimming.com`, and Email/Password + Google providers are enabled.
+- Verified 2026-09-28: authorized domains include `www.dartmouthswimming.com` and `dartmouthswimming.com` (old `psmoore.github.io` also listed, harmless); Email/Password and Google sign-in are enabled.
 - 23 people in the sheet had no email; 17 are invited only by `@dartmouth.edu` forwarding addresses and may need admin approval instead.
 - Possible follow-up (declined for now): store name + class year on invites to pre-fill profiles.
 
